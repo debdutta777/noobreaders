@@ -31,6 +31,8 @@ interface ContinueReadingProps {
 const ContinueReading = ({ userId }: ContinueReadingProps) => {
   const [readingList, setReadingList] = useState<ReadingItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const fallbackImage = '/images/placeholder-cover.jpg';
 
   useEffect(() => {
     const fetchReadingList = async () => {
@@ -48,6 +50,10 @@ const ContinueReading = ({ userId }: ContinueReadingProps) => {
 
     fetchReadingList();
   }, [userId]);
+
+  const handleImageError = (itemId: string) => {
+    setImageErrors(prev => ({ ...prev, [itemId]: true }));
+  };
 
   if (loading) {
     return (
@@ -102,11 +108,14 @@ const ContinueReading = ({ userId }: ContinueReadingProps) => {
           >
             <Link href={`/novels/${item.novelId._id}`} className="shrink-0">
               <Image
-                src={item.novelId.coverImage}
+                src={imageErrors[item._id] ? fallbackImage : item.novelId.coverImage}
                 alt={item.novelId.title}
                 width={80}
                 height={120}
                 className="w-20 h-full object-cover"
+                onError={() => handleImageError(item._id)}
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFDwIBYTgbwwAAAABJRU5ErkJggg=="
               />
             </Link>
             <div className="p-4 flex-1 flex flex-col">

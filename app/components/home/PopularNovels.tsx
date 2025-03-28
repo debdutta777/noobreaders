@@ -26,6 +26,16 @@ const PopularNovels = ({ period }: PopularNovelsProps) => {
   const [novels, setNovels] = useState<Novel[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Define the getPeriodTitle function early so it can be used anywhere in the component
+  const getPeriodTitle = () => {
+    switch (period) {
+      case 'day': return 'Today';
+      case 'week': return 'This Week';
+      case 'month': return 'This Month';
+      default: return 'All Time';
+    }
+  };
+
   useEffect(() => {
     const fetchPopularNovels = async () => {
       try {
@@ -74,15 +84,6 @@ const PopularNovels = ({ period }: PopularNovelsProps) => {
       </section>
     );
   }
-
-  const getPeriodTitle = () => {
-    switch (period) {
-      case 'day': return 'Today';
-      case 'week': return 'This Week';
-      case 'month': return 'This Month';
-      default: return 'All Time';
-    }
-  };
 
   return (
     <section className="mb-12">

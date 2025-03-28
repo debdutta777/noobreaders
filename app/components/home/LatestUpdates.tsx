@@ -25,6 +25,8 @@ interface Novel {
 const LatestUpdates = () => {
   const [updates, setUpdates] = useState<Novel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const fallbackImage = '/images/placeholder-cover.jpg';
 
   useEffect(() => {
     const fetchLatestUpdates = async () => {
@@ -42,6 +44,10 @@ const LatestUpdates = () => {
 
     fetchLatestUpdates();
   }, []);
+
+  const handleImageError = (novelId: string) => {
+    setImageErrors(prev => ({ ...prev, [novelId]: true }));
+  };
 
   if (loading) {
     return (
@@ -115,11 +121,14 @@ const LatestUpdates = () => {
           >
             <Link href={`/novels/${novel._id}`} className="shrink-0 mr-4">
               <Image 
-                src={novel.coverImage} 
+                src={imageErrors[novel._id] ? fallbackImage : novel.coverImage}
                 alt={novel.title}
                 width={48}
                 height={64}
                 className="w-12 h-16 object-cover rounded"
+                onError={() => handleImageError(novel._id)}
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFDwIBYTgbwwAAAABJRU5ErkJggg=="
               />
             </Link>
             <div className="flex-1">

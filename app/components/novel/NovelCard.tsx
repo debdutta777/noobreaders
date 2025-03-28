@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
 
 interface Author {
   _id: string;
@@ -20,15 +21,22 @@ interface NovelCardProps {
 }
 
 const NovelCard = ({ novel }: NovelCardProps) => {
+  const [imgError, setImgError] = useState(false);
+  const fallbackImage = '/images/placeholder-cover.jpg';
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col h-full transition-transform hover:scale-105 hover:shadow-lg">
       <Link href={`/novels/${novel._id}`} className="block relative h-56 overflow-hidden">
         <Image 
-          src={novel.coverImage} 
+          src={imgError ? fallbackImage : novel.coverImage}
           alt={novel.title} 
           className="object-cover"
           width={300}
           height={400}
+          priority={false}
+          onError={() => setImgError(true)}
+          placeholder="blur"
+          blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFDwIBYTgbwwAAAABJRU5ErkJggg=="
         />
       </Link>
       <div className="p-4 flex flex-col flex-grow">

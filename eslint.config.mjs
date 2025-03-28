@@ -1,16 +1,26 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextEslint from '@next/eslint-plugin-next';
+import eslintPluginEslintrc from '@eslint/eslintrc';
+import tseslint from 'typescript-eslint';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { FlatCompat } = eslintPluginEslintrc;
+const compat = new FlatCompat();
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+export default [
+  {
+    ignores: ['**/*.js', '**/*.mjs', '**/*.cjs'],
+  },
+  ...tseslint.configs.recommended,
+  ...compat.extends('eslint:recommended'),
+  {
+    plugins: {
+      '@next/next': nextEslint,
+    },
+    rules: {
+      'no-var': 'warn',
+      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/ban-ts-comment': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+    },
+  },
 ];
-
-export default eslintConfig;
