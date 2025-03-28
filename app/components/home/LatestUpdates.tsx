@@ -64,78 +64,34 @@ const LatestUpdates = () => {
     );
   }
 
-  // Mock data for demonstration
-  const mockUpdates: Novel[] = updates.length > 0 ? updates : [
-    {
-      _id: '1',
-      title: 'The Forgotten Realm',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '101', name: 'J. R. Writer' },
-      latestChapter: { 
-        _id: 'c1', 
-        title: 'Awakening Powers', 
-        chapterNumber: 42,
-        createdAt: new Date().toISOString()
-      }
-    },
-    {
-      _id: '2',
-      title: 'Stellar Odyssey',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '102', name: 'A. Stellar' },
-      latestChapter: { 
-        _id: 'c2', 
-        title: 'The Quantum Leap', 
-        chapterNumber: 18,
-        createdAt: new Date().toISOString()
-      }
-    },
-    {
-      _id: '3',
-      title: 'Whispers in the Dark',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '103', name: 'M. Shadow' },
-      latestChapter: { 
-        _id: 'c3', 
-        title: 'The Mysterious Note', 
-        chapterNumber: 27,
-        createdAt: new Date().toISOString()
-      }
-    },
-    {
-      _id: '4',
-      title: 'Hearts Entwined',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '104', name: 'R. Heart' },
-      latestChapter: { 
-        _id: 'c4', 
-        title: 'Unexpected Reunion', 
-        chapterNumber: 35,
-        createdAt: new Date().toISOString()
-      }
-    },
-    {
-      _id: '5',
-      title: 'Dragon's Ascent',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '105', name: 'D. Flame' },
-      latestChapter: { 
-        _id: 'c5', 
-        title: 'The Final Battle', 
-        chapterNumber: 50,
-        createdAt: new Date().toISOString()
-      }
-    }
-  ];
+  if (updates.length === 0) {
+    return (
+      <section className="mb-12">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Latest Updates</h2>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+          <p className="text-gray-600 dark:text-gray-400">No recent updates found.</p>
+        </div>
+      </section>
+    );
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return 'Today';
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date);
+    }
   };
 
   return (
@@ -150,11 +106,11 @@ const LatestUpdates = () => {
         </Link>
       </div>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-        {mockUpdates.map((novel, index) => (
+        {updates.map((novel, index) => (
           <div 
             key={novel._id}
             className={`flex p-4 ${
-              index < mockUpdates.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
+              index < updates.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
             }`}
           >
             <Link href={`/novels/${novel._id}`} className="shrink-0 mr-4">

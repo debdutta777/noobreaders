@@ -53,41 +53,18 @@ const FeaturedNovels = () => {
     );
   }
 
-  // For demo purposes if API isn't available yet
-  const mockNovels: Novel[] = novels.length > 0 ? novels : [
-    {
-      _id: '1',
-      title: 'The Forgotten Realm',
-      description: 'A journey through magical lands...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '101', name: 'J. R. Writer' },
-      genres: ['Fantasy', 'Adventure']
-    },
-    {
-      _id: '2',
-      title: 'Stellar Odyssey',
-      description: 'The epic space adventure...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '102', name: 'A. Stellar' },
-      genres: ['Sci-Fi', 'Action']
-    },
-    {
-      _id: '3',
-      title: 'Whispers in the Dark',
-      description: 'A thrilling mystery...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '103', name: 'M. Shadow' },
-      genres: ['Mystery', 'Horror']
-    },
-    {
-      _id: '4',
-      title: 'Hearts Entwined',
-      description: 'A tale of love and destiny...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '104', name: 'R. Heart' },
-      genres: ['Romance', 'Drama']
-    }
-  ];
+  if (novels.length === 0) {
+    return (
+      <section className="mb-12">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Featured Novels</h2>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+          <p className="text-gray-600 dark:text-gray-400">No featured novels available.</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="mb-12">
@@ -101,7 +78,7 @@ const FeaturedNovels = () => {
         </Link>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {mockNovels.map(novel => (
+        {novels.map(novel => (
           <NovelCard key={novel._id} novel={novel} />
         ))}
       </div>

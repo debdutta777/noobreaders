@@ -60,49 +60,20 @@ const PopularNovels = ({ period }: PopularNovelsProps) => {
     );
   }
 
-  // Mock data for demonstration
-  const mockNovels: Novel[] = novels.length > 0 ? novels : [
-    {
-      _id: '1',
-      title: 'The Forgotten Realm',
-      description: 'A journey through magical lands...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '101', name: 'J. R. Writer' },
-      genres: ['Fantasy', 'Adventure'],
-      views: 25000,
-      likes: 1200
-    },
-    {
-      _id: '2',
-      title: 'Stellar Odyssey',
-      description: 'The epic space adventure...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '102', name: 'A. Stellar' },
-      genres: ['Sci-Fi', 'Action'],
-      views: 18500,
-      likes: 950
-    },
-    {
-      _id: '3',
-      title: 'Whispers in the Dark',
-      description: 'A thrilling mystery...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '103', name: 'M. Shadow' },
-      genres: ['Mystery', 'Horror'],
-      views: 15000,
-      likes: 780
-    },
-    {
-      _id: '4',
-      title: 'Hearts Entwined',
-      description: 'A tale of love and destiny...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '104', name: 'R. Heart' },
-      genres: ['Romance', 'Drama'],
-      views: 12000,
-      likes: 650
-    }
-  ];
+  if (novels.length === 0) {
+    return (
+      <section className="mb-12">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Popular {getPeriodTitle()}
+          </h2>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+          <p className="text-gray-600 dark:text-gray-400">No popular novels found for this time period.</p>
+        </div>
+      </section>
+    );
+  }
 
   const getPeriodTitle = () => {
     switch (period) {
@@ -125,7 +96,7 @@ const PopularNovels = ({ period }: PopularNovelsProps) => {
         </Link>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {mockNovels.map(novel => (
+        {novels.map(novel => (
           <NovelCard key={novel._id} novel={novel} />
         ))}
       </div>

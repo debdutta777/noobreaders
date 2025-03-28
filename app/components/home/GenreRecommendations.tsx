@@ -112,41 +112,35 @@ const GenreRecommendations = () => {
     );
   }
 
-  // Mock data for demonstration
-  const mockRecommendations: Novel[] = recommendations.length > 0 ? recommendations : [
-    {
-      _id: '1',
-      title: 'The Forgotten Realm',
-      description: 'A journey through magical lands...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '101', name: 'J. R. Writer' },
-      genres: ['Fantasy', 'Adventure']
-    },
-    {
-      _id: '2',
-      title: 'Dragon's Ascent',
-      description: 'The rise of the last dragon king...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '105', name: 'D. Flame' },
-      genres: ['Fantasy', 'Action']
-    },
-    {
-      _id: '3',
-      title: 'The Crystal Mage',
-      description: 'A young mage discovers her power...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '106', name: 'C. Wizard' },
-      genres: ['Fantasy', 'Coming of Age']
-    },
-    {
-      _id: '4',
-      title: 'Realm of Shadows',
-      description: 'Ancient darkness returns to the kingdom...',
-      coverImage: 'https://via.placeholder.com/300x400',
-      author: { _id: '107', name: 'S. Knight' },
-      genres: ['Fantasy', 'Dark Fantasy']
-    }
-  ];
+  if (recommendations.length === 0) {
+    return (
+      <section className="mb-12">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            {session ? 'Recommended for You' : 'Genre Recommendations'}
+          </h2>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {availableGenres.map(genre => (
+              <button
+                key={genre}
+                className={`px-4 py-2 rounded-full text-sm font-medium ${
+                  selectedGenre === genre
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-indigo-100 dark:hover:bg-indigo-900'
+                }`}
+                onClick={() => setSelectedGenre(genre)}
+              >
+                {genre}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-gray-600 dark:text-gray-400">No novels found for this genre.</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="mb-12">
@@ -171,7 +165,7 @@ const GenreRecommendations = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {mockRecommendations.map(novel => (
+        {recommendations.map(novel => (
           <NovelCard key={novel._id} novel={novel} />
         ))}
       </div>

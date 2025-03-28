@@ -66,42 +66,6 @@ const ContinueReading = ({ userId }: ContinueReadingProps) => {
     return null; // Don't show the section if there's nothing to continue reading
   }
 
-  // Mock data for demonstration
-  const mockReadingList: ReadingItem[] = readingList.length > 0 ? readingList : [
-    {
-      _id: 'lib1',
-      novelId: {
-        _id: '1',
-        title: 'The Forgotten Realm',
-        coverImage: 'https://via.placeholder.com/300x400',
-        author: { _id: '101', name: 'J. R. Writer' }
-      },
-      lastReadChapter: {
-        _id: 'ch15',
-        title: 'The Ancient Tower',
-        chapterNumber: 15
-      },
-      readingProgress: 32,
-      updatedAt: new Date().toISOString()
-    },
-    {
-      _id: 'lib2',
-      novelId: {
-        _id: '2',
-        title: 'Stellar Odyssey',
-        coverImage: 'https://via.placeholder.com/300x400',
-        author: { _id: '102', name: 'A. Stellar' }
-      },
-      lastReadChapter: {
-        _id: 'ch8',
-        title: 'The Quantum Gate',
-        chapterNumber: 8
-      },
-      readingProgress: 45,
-      updatedAt: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-    }
-  ];
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -131,7 +95,7 @@ const ContinueReading = ({ userId }: ContinueReadingProps) => {
         </Link>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {mockReadingList.map((item) => (
+        {readingList.map((item) => (
           <div
             key={item._id}
             className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex"
