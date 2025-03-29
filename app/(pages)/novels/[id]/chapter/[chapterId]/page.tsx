@@ -14,6 +14,24 @@ interface ChapterPageProps {
   };
 }
 
+// Helper function to format chapter content with proper paragraph breaks
+function formatChapterContent(content: string): string {
+  if (!content) return '<p>No content available.</p>';
+  
+  // If content already has HTML paragraph tags, return as is
+  if (content.includes('<p>') && content.includes('</p>')) {
+    return content;
+  }
+  
+  // Split by double newlines to identify paragraphs
+  const paragraphs = content.split(/\n\s*\n/);
+  
+  // Create HTML paragraphs
+  return paragraphs
+    .map(p => `<p>${p.trim()}</p>`)
+    .join('\n');
+}
+
 export default async function ChapterPage({ params }: ChapterPageProps) {
   const { id: novelId, chapterId } = params;
 
@@ -137,9 +155,7 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
         _id: 'dummy-chapter-1',
         title: 'Chapter 1',
         chapterNumber: 1,
-        content: `<p>This is a sample chapter for "${novel.title}".</p>
-                 <p>No actual chapter content is available yet.</p>
-                 <p>Check back soon for updates!</p>`,
+        content: `This is a sample chapter for "${novel.title}".\n\nNo actual chapter content is available yet.\n\nCheck back soon for updates!`,
         createdAt: new Date().toISOString()
       };
     }
@@ -219,12 +235,12 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
       id: chapter._id.toString ? chapter._id.toString() : chapter._id,
       title: chapter.title || `Chapter ${chapter.chapterNumber || 1}`,
       chapterNumber: chapter.chapterNumber || 1,
-      content: chapter.content || 'No content available.',
+      content: formatChapterContent(chapter.content || 'No content available.'),
       createdAt: chapter.createdAt ? new Date(chapter.createdAt).toLocaleDateString() : 'Unknown date'
     };
     
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
           <Link 
             href={`/novels/${novelId}`}
@@ -238,25 +254,31 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
         </div>
         
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-6">
+          <div className="p-6 md:p-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               {formattedChapter.title}
             </h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-8 border-b pb-4">
               {novel.title} • {formattedChapter.createdAt}
             </p>
             
-            <div className="prose max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: formattedChapter.content }} />
+            <div className="prose prose-lg max-w-none text-gray-800 leading-relaxed">
+              <div 
+                dangerouslySetInnerHTML={{ __html: formattedChapter.content }} 
+                className="chapter-content"
+              />
             </div>
             
-            <div className="mt-8 flex justify-between">
+            <div className="mt-12 flex justify-between border-t pt-6">
               {previousChapter ? (
                 <Link
                   href={`/novels/${novelId}/chapter/${previousChapter._id}`}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md flex items-center"
                 >
-                  ← Previous Chapter
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Previous Chapter
                 </Link>
               ) : (
                 <div></div>
@@ -265,9 +287,12 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
               {nextChapter ? (
                 <Link
                   href={`/novels/${novelId}/chapter/${nextChapter._id}`}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center"
                 >
-                  Next Chapter →
+                  Next Chapter
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               ) : (
                 <div></div>

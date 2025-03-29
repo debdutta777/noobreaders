@@ -24,3 +24,45 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Chapter reading styles */
+.chapter-content {
+  font-family: 'Georgia', serif;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: #333;
+}
+
+.chapter-content p {
+  margin-bottom: 1.5rem;
+  text-indent: 1.5rem;
+}
+
+.chapter-content p:first-of-type {
+  text-indent: 0;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .chapter-content {
+    color: #e0e0e0;
+  }
+}
+
+/* Better typography for reading */
+.prose {
+  max-width: 70ch;
+  margin: 0 auto;
+}
+
+.prose p {
+  text-align: justify;
+}
+
+/* Responsive font size */
+@media (max-width: 640px) {
+  .chapter-content {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+}
