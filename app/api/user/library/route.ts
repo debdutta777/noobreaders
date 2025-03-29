@@ -208,6 +208,44 @@ export async function GET(req: Request) {
     
     console.log('Number of novels retrieved:', novels.length);
     
+    // Create a set of all author IDs that need to be looked up
+    const authorIdsToLookup = new Set();
+    
+    // Identify all author IDs that need to be looked up
+    novels.forEach(novel => {
+      if (novel.author && typeof novel.author === 'string') {
+        try {
+          authorIdsToLookup.add(new ObjectId(novel.author));
+        } catch (error) {
+          console.error('Invalid author ID:', novel.author);
+        }
+      } else if (novel.author && typeof novel.author === 'object' && novel.author._id && !novel.author.name) {
+        try {
+          authorIdsToLookup.add(new ObjectId(novel.author._id));
+        } catch (error) {
+          console.error('Invalid author ID in object:', novel.author._id);
+        }
+      }
+    });
+    
+    console.log('Author IDs to lookup:', authorIdsToLookup.size);
+    
+    // Look up author names from writer-users collection
+    const authorMap = new Map();
+    if (authorIdsToLookup.size > 0) {
+      const authorIds = Array.from(authorIdsToLookup);
+      const authors = await db.collection('writer-user')
+        .find({ _id: { $in: authorIds } })
+        .project({ _id: 1, name: 1 })
+        .toArray();
+      
+      console.log('Authors found in writer-user collection:', authors.length);
+      
+      authors.forEach(author => {
+        authorMap.set(author._id.toString(), author.name);
+      });
+    }
+    
     // Format the novels
     const formattedNovels = novels.map(novel => {
       // Handle author info safely
@@ -215,15 +253,16 @@ export async function GET(req: Request) {
       if (novel.author) {
         if (typeof novel.author === 'object') {
           // If author is an object with _id
+          const authorId = novel.author._id ? novel.author._id.toString() : null;
           authorInfo = {
-            _id: novel.author._id ? novel.author._id.toString() : null,
-            name: novel.author.name || 'Unknown Author'
+            _id: authorId,
+            name: novel.author.name || (authorId && authorMap.get(authorId)) || 'Unknown Author'
           };
         } else if (typeof novel.author === 'string') {
-          // If author is just an ID string
+          // If author is just an ID string, look up in the author map
           authorInfo = {
             _id: novel.author,
-            name: 'Unknown Author'
+            name: authorMap.get(novel.author) || 'Unknown Author'
           };
         }
       }
