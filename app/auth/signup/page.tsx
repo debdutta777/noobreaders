@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Metadata } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
@@ -9,10 +8,8 @@ import SignUpButtons from './components/SignUpButtons';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Sign Up | NoobReaders',
-  description: 'Create a new NoobReaders account',
-};
+// Metadata is handled by the layout file or separate metadata route
+// since this is a client component and can't export metadata
 
 export default function SignUpPage() {
   const router = useRouter();
