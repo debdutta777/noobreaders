@@ -17,7 +17,7 @@ export default function AddToLibraryButton({ novelId }: AddToLibraryButtonProps)
 
   // Check if novel is already in library on mount
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && session?.user?.email) {
       const checkLibrary = async () => {
         try {
           const response = await fetch('/api/user/library', {
@@ -35,15 +35,19 @@ export default function AddToLibraryButton({ novelId }: AddToLibraryButtonProps)
                 setAdded(true);
               }
             }
+          } else if (response.status === 404) {
+            // User not found in database, but that's okay for this check
+            console.log('User profile not complete yet');
           }
         } catch (error) {
           console.error('Error checking library status:', error);
+          // Don't show error for this check to user
         }
       };
 
       checkLibrary();
     }
-  }, [novelId, status]);
+  }, [novelId, status, session]);
 
   const handleAddToLibrary = async () => {
     // If not logged in, redirect to login
@@ -60,6 +64,10 @@ export default function AddToLibraryButton({ novelId }: AddToLibraryButtonProps)
     setError(null);
 
     try {
+      if (!session.user?.email) {
+        throw new Error('Your user profile is not complete. Please update your profile first.');
+      }
+
       const response = await fetch('/api/user/library', {
         method: 'POST',
         headers: {
@@ -73,7 +81,11 @@ export default function AddToLibraryButton({ novelId }: AddToLibraryButtonProps)
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to add to library');
+        if (response.status === 404) {
+          throw new Error('Your profile needs to be completed before adding to library. Please visit your profile page.');
+        } else {
+          throw new Error(data.error || 'Failed to add to library');
+        }
       }
 
       setAdded(true);
@@ -93,7 +105,7 @@ export default function AddToLibraryButton({ novelId }: AddToLibraryButtonProps)
         className="w-full py-3 bg-green-600 text-white font-medium rounded-lg cursor-default"
         disabled
       >
-        Added to Library
+        ✓ Added to Library
       </button>
     );
   }
@@ -103,12 +115,21 @@ export default function AddToLibraryButton({ novelId }: AddToLibraryButtonProps)
       <button 
         onClick={handleAddToLibrary}
         disabled={loading}
-        className="w-full py-3 border border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-colors"
+        className="w-full py-3 border border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
       >
         {loading ? 'Adding...' : 'Add to Library'}
       </button>
       {error && (
-        <p className="text-red-500 text-sm mt-2">{error}</p>
+        <div className="text-red-500 text-sm mt-2 p-2 bg-red-50 rounded-md">
+          {error}
+          {error.includes('profile') && (
+            <p className="mt-1">
+              <a href="/profile" className="text-blue-600 underline">
+                Complete your profile
+              </a>
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

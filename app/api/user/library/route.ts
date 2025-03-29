@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     // Get the user's session
     const session = await auth();
     
-    if (!session || !session.user || !session.user.id) {
+    if (!session || !session.user || !session.user.email) {
       console.log('Authentication failed: No valid session', session);
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -29,50 +29,25 @@ export async function POST(req: Request) {
       );
     }
 
-    const userId = session.user.id;
+    const userEmail = session.user.email;
     const { db } = await connectToDatabase();
     
-    // Check if the user exists
-    let userObjectId;
-    try {
-      userObjectId = new ObjectId(userId);
-    } catch (error) {
-      console.error('Invalid user ID format:', userId);
+    // Find user by email (more reliable than ID which might be in different formats)
+    let user = await db.collection('users').findOne({ email: userEmail });
+    if (!user) {
+      user = await db.collection('reader-user').findOne({ email: userEmail });
+    }
+    
+    if (!user) {
+      console.error('User not found in database:', userEmail);
       return NextResponse.json(
-        { error: 'Invalid user ID format' },
-        { status: 400 }
-      );
-    }
-    
-    // Check if the user exists in any collection (users or reader-user)
-    let userExists = await db.collection('users').findOne({ _id: userObjectId });
-    if (!userExists) {
-      userExists = await db.collection('reader-user').findOne({ _id: userObjectId });
-    }
-    
-    if (!userExists) {
-      // If user doesn't exist directly by ID, try email lookup
-      const userEmail = session.user.email;
-      if (userEmail) {
-        userExists = await db.collection('users').findOne({ email: userEmail });
-        if (!userExists) {
-          userExists = await db.collection('reader-user').findOne({ email: userEmail });
-        }
-        
-        // If found by email, update userObjectId to match the found document
-        if (userExists) {
-          userObjectId = userExists._id;
-        }
-      }
-    }
-    
-    if (!userExists) {
-      console.error('User not found in database:', userId, session.user.email);
-      return NextResponse.json(
-        { error: 'User not found in database' },
+        { error: 'User not found in database. Please complete your profile.' },
         { status: 404 }
       );
     }
+    
+    // Use the user's MongoDB _id for reference
+    const userObjectId = user._id;
     
     // Check if the novel exists
     let novelObjectId;
@@ -130,6 +105,7 @@ export async function POST(req: Request) {
       // Create a new library for the user
       await db.collection('userLibraries').insertOne({
         userId: userObjectId,
+        userEmail: userEmail, // Store email as well for easier lookup
         novelIds: [novelObjectId],
         createdAt: new Date(),
         updatedAt: new Date()
@@ -154,18 +130,31 @@ export async function GET(req: Request) {
     // Get the user's session
     const session = await auth();
     
-    if (!session || !session.user || !session.user.id) {
+    if (!session || !session.user || !session.user.email) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
     
-    const userId = session.user.id;
+    const userEmail = session.user.email;
     const { db } = await connectToDatabase();
     
-    // Find the user's library
-    const userObjectId = new ObjectId(userId);
+    // Find user by email first
+    let user = await db.collection('users').findOne({ email: userEmail });
+    if (!user) {
+      user = await db.collection('reader-user').findOne({ email: userEmail });
+    }
+    
+    if (!user) {
+      return NextResponse.json({ 
+        error: 'User not found in database. Please complete your profile.',
+        novels: [] 
+      }, { status: 404 });
+    }
+    
+    // Find the user's library using their MongoDB _id
+    const userObjectId = user._id;
     const library = await db.collection('userLibraries').findOne({ userId: userObjectId });
     
     if (!library || !library.novelIds || library.novelIds.length === 0) {
@@ -201,7 +190,7 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('Error fetching user library:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch library' },
+      { error: 'Failed to fetch library', novels: [] },
       { status: 500 }
     );
   }

@@ -44,15 +44,25 @@ export const authConfig: NextAuthConfig = {
     newUser: '/auth/signup',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      // When credentials are used for sign-in, don't assign random ID
+      if (account?.provider === 'credentials') {
+        token.email = user.email;
+        token.sub = user.email; // Use email as the subject/id for credential users
+      }
+      
       if (user) {
+        // Safely pass user ID to token to avoid ObjectId format issues
         token.id = user.id;
+        token.email = user.email;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
+        // Use the email as a reliable way to identify users
+        session.user.id = token.sub || token.email;
+        session.user.email = token.email;
       }
       return session;
     },
