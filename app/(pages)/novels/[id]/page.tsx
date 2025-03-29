@@ -172,9 +172,15 @@ export default async function NovelDetailPage({ params }: { params: { id: string
               <h1 className="text-3xl font-bold text-gray-900">{novel.title}</h1>
               
               <div className="mt-2">
-                <Link href={`/profile/${author._id}`} className="text-blue-600 hover:underline">
-                  By {author.name}
-                </Link>
+                {author._id !== 'unknown' ? (
+                  <Link href={`/profile/${author._id}`} className="text-blue-600 hover:underline">
+                    By {author.name}
+                  </Link>
+                ) : (
+                  <span className="text-gray-600">
+                    By {author.name}
+                  </span>
+                )}
               </div>
               
               <div className="mt-4 flex flex-wrap gap-2">
