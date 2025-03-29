@@ -11,6 +11,7 @@ export async function POST(req: Request) {
     const session = await auth();
     
     if (!session || !session.user || !session.user.id) {
+      console.log('Authentication failed: No valid session', session);
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
     const { novelId } = await req.json();
     
     if (!novelId) {
+      console.log('Missing novelId in request body');
       return NextResponse.json(
         { error: 'Novel ID is required' },
         { status: 400 }
@@ -30,11 +32,54 @@ export async function POST(req: Request) {
     const userId = session.user.id;
     const { db } = await connectToDatabase();
     
+    // Check if the user exists
+    let userObjectId;
+    try {
+      userObjectId = new ObjectId(userId);
+    } catch (error) {
+      console.error('Invalid user ID format:', userId);
+      return NextResponse.json(
+        { error: 'Invalid user ID format' },
+        { status: 400 }
+      );
+    }
+    
+    // Check if the user exists in any collection (users or reader-user)
+    let userExists = await db.collection('users').findOne({ _id: userObjectId });
+    if (!userExists) {
+      userExists = await db.collection('reader-user').findOne({ _id: userObjectId });
+    }
+    
+    if (!userExists) {
+      // If user doesn't exist directly by ID, try email lookup
+      const userEmail = session.user.email;
+      if (userEmail) {
+        userExists = await db.collection('users').findOne({ email: userEmail });
+        if (!userExists) {
+          userExists = await db.collection('reader-user').findOne({ email: userEmail });
+        }
+        
+        // If found by email, update userObjectId to match the found document
+        if (userExists) {
+          userObjectId = userExists._id;
+        }
+      }
+    }
+    
+    if (!userExists) {
+      console.error('User not found in database:', userId, session.user.email);
+      return NextResponse.json(
+        { error: 'User not found in database' },
+        { status: 404 }
+      );
+    }
+    
     // Check if the novel exists
     let novelObjectId;
     try {
       novelObjectId = new ObjectId(novelId);
     } catch (error) {
+      console.error('Invalid novel ID format:', novelId);
       return NextResponse.json(
         { error: 'Invalid novel ID format' },
         { status: 400 }
@@ -44,14 +89,21 @@ export async function POST(req: Request) {
     const novel = await db.collection('novels').findOne({ _id: novelObjectId });
     
     if (!novel) {
+      console.error('Novel not found in database:', novelId);
       return NextResponse.json(
         { error: 'Novel not found' },
         { status: 404 }
       );
     }
     
+    // Check if userLibraries collection exists, create it if not
+    const collections = await db.listCollections({ name: 'userLibraries' }).toArray();
+    if (collections.length === 0) {
+      await db.createCollection('userLibraries');
+      console.log('Created userLibraries collection');
+    }
+    
     // Find the user's library document or create one if it doesn't exist
-    const userObjectId = new ObjectId(userId);
     const library = await db.collection('userLibraries').findOne({ userId: userObjectId });
     
     if (library) {
@@ -91,7 +143,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Error adding novel to library:', error);
     return NextResponse.json(
-      { error: 'Failed to add novel to library' },
+      { error: 'Failed to add novel to library', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
