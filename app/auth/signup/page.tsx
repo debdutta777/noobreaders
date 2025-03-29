@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import SignUpButtons from './components/SignUpButtons';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Sign Up | NoobReaders',
   description: 'Create a new NoobReaders account',

@@ -56,7 +56,10 @@ export default function PopularNovels() {
       
       try {
         const baseUrl = window.location.origin;
-        const res = await fetch(`${baseUrl}/api/novels/popular?period=${period}`);
+        const res = await fetch(`${baseUrl}/api/novels/popular?period=${period}`, {
+          cache: 'no-store',
+          next: { revalidate: 60 }
+        });
         
         if (!res.ok) {
           throw new Error('Failed to fetch popular novels');
@@ -64,9 +67,10 @@ export default function PopularNovels() {
         
         const data = await res.json();
         
-        if (data && data.novels) {
+        if (data && Array.isArray(data.novels)) {
           setNovels(data.novels);
         } else {
+          console.error('Invalid data format:', data);
           setNovels([]);
         }
       } catch (error) {

@@ -14,10 +14,11 @@ async function getNovelData() {
     // Use absolute URL instead of relying on NEXTAUTH_URL
     const baseUrl = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000';
+      : process.env.NEXTAUTH_URL || 'http://localhost:3000';
       
     const res = await fetch(`${baseUrl}/api/novels/featured`, {
       cache: 'no-store',
+      next: { revalidate: 0 }
     });
     
     if (!res.ok) {
@@ -43,8 +44,8 @@ export default async function ExplorePage() {
       {novels && novels.length > 0 ? (
         <NovelGrid novels={novels} />
       ) : (
-        <div className="text-center py-10">
-          <p className="text-gray-500">No novels found. Check back later for updates.</p>
+        <div className="text-center py-10 border border-gray-200 rounded-lg">
+          <p className="text-gray-500">No novels found. Our library is being updated. Check back later!</p>
         </div>
       )}
     </div>

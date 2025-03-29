@@ -1,26 +1,79 @@
-import { NextResponse } from 'next/server';
-import { NextRequest } from 'next/server';
-import dbConnect from '@/app/lib/utils/db';
-import Novel from '@/app/lib/models/Novel';
+import { NextRequest, NextResponse } from 'next/server';
+import { connectToDatabase } from '@/app/lib/mongodb';
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
+    const { db } = await connectToDatabase();
+    const searchParams = request.nextUrl.searchParams;
+    const genre = searchParams.get('genre') || '';
     
-    const genre = request.nextUrl.searchParams.get('genre') || 'Fantasy';
+    let novels = [];
     
-    // Find novels with the specified genre
-    const novels = await Novel.find({
-      genres: { $in: [genre] }
-    })
-      .populate('author', 'name')
-      .sort({ views: -1 })
-      .limit(4)
-      .lean();
-    
-    return NextResponse.json(novels);
+    // If a genre is specified, get recommendations by genre
+    if (genre) {
+      novels = await db
+        .collection('novels')
+        .find({ genres: genre })
+        .sort({ views: -1 })
+        .limit(6)
+        .toArray();
+    } else {
+      // Otherwise, get general recommendations (most popular)
+      novels = await db
+        .collection('novels')
+        .find({})
+        .sort({ views: -1 })
+        .limit(6)
+        .toArray();
+    }
+
+    // Format the novels to match the expected structure
+    const formattedNovels = await Promise.all(
+      novels.map(async (novel) => {
+        // If the novel has an author ID, fetch the author details
+        let authorDetails = { _id: 'unknown', name: 'Unknown Author' };
+        
+        if (novel.author) {
+          try {
+            const authorDoc = await db
+              .collection('users')
+              .findOne({ _id: novel.author });
+              
+            if (authorDoc) {
+              authorDetails = {
+                _id: authorDoc._id.toString(),
+                name: authorDoc.name || authorDoc.username || 'Unknown Author'
+              };
+            }
+          } catch (error) {
+            console.error('Error fetching author:', error);
+          }
+        }
+        
+        return {
+          _id: novel._id.toString(),
+          title: novel.title || 'Untitled Novel',
+          coverImage: novel.coverImage || '/images/placeholder-cover.jpg',
+          description: novel.description || '',
+          author: authorDetails,
+          views: novel.views || 0
+        };
+      })
+    );
+
+    return NextResponse.json({ 
+      novels: formattedNovels || [], 
+      genre: genre || 'All'
+    });
   } catch (error) {
     console.error('Error fetching recommendations:', error);
-    return NextResponse.json({ error: 'Failed to fetch recommendations' }, { status: 500 });
+    return NextResponse.json(
+      { 
+        error: 'Failed to fetch recommendations', 
+        novels: [],
+        genre: ''
+      },
+      { status: 500 }
+    );
   }
 } 
