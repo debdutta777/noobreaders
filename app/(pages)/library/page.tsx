@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import NovelGrid from '@/app/components/NovelGrid';
 
