@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import SignInButtons from './components/SignInButtons';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Sign In | NoobReaders',
   description: 'Sign in to your NoobReaders account',
@@ -21,12 +23,12 @@ export default async function SignInPage() {
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Welcome Back</h1>
-          <p className="text-gray-600 mt-2">Sign in to continue to NoobReaders</p>
+          <h1 className="text-3xl font-bold">Sign In</h1>
+          <p className="text-gray-600 mt-2">Welcome back to NoobReaders</p>
         </div>
         
         <div className="bg-white p-8 rounded-lg shadow-md">
-          <form action="/api/auth/signin" method="POST" className="space-y-6">
+          <form action="/api/auth/callback/credentials" method="POST" className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
@@ -41,9 +43,14 @@ export default async function SignInPage() {
             </div>
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 name="password"
@@ -80,7 +87,7 @@ export default async function SignInPage() {
         </div>
         
         <p className="text-center mt-6">
-          Don&apos;t have an account?{' '}
+          Don't have an account?{' '}
           <Link href="/auth/signup" className="text-blue-600 hover:text-blue-500">
             Sign up
           </Link>

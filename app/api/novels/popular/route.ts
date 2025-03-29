@@ -7,27 +7,44 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const period = searchParams.get('period') || 'week';
     
-    // Define the date range based on period
-    let dateFilter: Date;
+    // Calculate the date range based on the period
     const now = new Date();
+    let dateFilter = new Date();
     
     switch (period) {
       case 'day':
-        dateFilter = new Date(now.setDate(now.getDate() - 1));
-        break;
-      case 'month':
-        dateFilter = new Date(now.setMonth(now.getMonth() - 1));
-        break;
-      case 'year':
-        dateFilter = new Date(now.setFullYear(now.getFullYear() - 1));
+        dateFilter.setDate(now.getDate() - 1);
         break;
       case 'week':
-      default:
-        dateFilter = new Date(now.setDate(now.getDate() - 7));
+        dateFilter.setDate(now.getDate() - 7);
         break;
+      case 'month':
+        dateFilter.setMonth(now.getMonth() - 1);
+        break;
+      case 'year':
+        dateFilter.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        dateFilter.setDate(now.getDate() - 7); // Default to week
     }
     
-    // Get popular novels from the database based on views
+    // Check if we have novels collection
+    const hasNovels = await db.listCollections({ name: 'novels' }).hasNext();
+    
+    if (!hasNovels) {
+      console.log('No novels collection found, creating sample novel');
+      // Create a sample novel if no collection exists
+      await db.collection('novels').insertOne({
+        title: 'The Mystic Journey',
+        description: 'A captivating tale of adventure and discovery...',
+        coverImage: '/images/placeholder-cover.jpg',
+        views: 100,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+    
+    // Find novels updated within the time period
     const novels = await db
       .collection('novels')
       .find({
@@ -36,7 +53,7 @@ export async function GET(request: NextRequest) {
       .sort({ views: -1 })
       .limit(6)
       .toArray();
-
+    
     // Format the novels to match the expected structure
     const formattedNovels = await Promise.all(
       novels.map(async (novel) => {
@@ -66,16 +83,24 @@ export async function GET(request: NextRequest) {
           coverImage: novel.coverImage || '/images/placeholder-cover.jpg',
           description: novel.description || '',
           author: authorDetails,
-          views: novel.views || 0
+          views: novel.views || 0,
+          updatedAt: novel.updatedAt || new Date()
         };
       })
     );
 
-    return NextResponse.json({ novels: formattedNovels || [] });
+    return NextResponse.json({ 
+      novels: formattedNovels || [],
+      period: period
+    });
   } catch (error) {
     console.error('Error fetching popular novels:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch popular novels', novels: [] },
+      { 
+        error: 'Failed to fetch popular novels', 
+        novels: [],
+        period: 'week'
+      },
       { status: 500 }
     );
   }

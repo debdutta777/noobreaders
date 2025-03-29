@@ -63,13 +63,13 @@ const Header = () => {
           ) : (
             <div className="flex items-center space-x-4">
               <Link
-                href="/login"
+                href="/auth/signin"
                 className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400"
               >
                 Log In
               </Link>
               <Link
-                href="/register"
+                href="/auth/signup"
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
               >
                 Sign Up
@@ -150,14 +150,14 @@ const Header = () => {
               ) : (
                 <>
                   <Link
-                    href="/login"
+                    href="/auth/signin"
                     className="block text-gray-700 dark:text-gray-300 mb-3"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Log In
                   </Link>
                   <Link
-                    href="/register"
+                    href="/auth/signup"
                     className="block w-full px-4 py-2 text-sm font-medium text-center text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
                     onClick={() => setIsMenuOpen(false)}
                   >

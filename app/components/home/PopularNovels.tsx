@@ -62,7 +62,7 @@ export default function PopularNovels() {
         });
         
         if (!res.ok) {
-          throw new Error('Failed to fetch popular novels');
+          throw new Error(`Failed to fetch popular novels: ${res.status} ${res.statusText}`);
         }
         
         const data = await res.json();
@@ -71,6 +71,11 @@ export default function PopularNovels() {
           setNovels(data.novels);
         } else {
           console.error('Invalid data format:', data);
+          if (data && data.error) {
+            setError(data.error);
+          } else {
+            setError('Received invalid data format from server');
+          }
           setNovels([]);
         }
       } catch (error) {
@@ -84,6 +89,10 @@ export default function PopularNovels() {
     
     fetchPopularNovels();
   }, [period]);
+
+  const handleRetry = () => {
+    window.location.reload();
+  };
 
   return (
     <section className="py-8">
@@ -135,8 +144,14 @@ export default function PopularNovels() {
           ))}
         </div>
       ) : error ? (
-        <div className="text-center py-10">
-          <p className="text-red-500">{error}</p>
+        <div className="text-center py-10 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button 
+            onClick={handleRetry}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Try Again
+          </button>
         </div>
       ) : novels && novels.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
