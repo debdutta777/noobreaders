@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { connectToDatabase } from '@/app/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,16 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   try {
     const { db } = await connectToDatabase();
-    const novel = await db.collection('novels').findOne({ _id: params.id });
+    
+    // Try to find the novel with either direct ID string or convert to ObjectId
+    let novel;
+    try {
+      // First attempt with ObjectId
+      novel = await db.collection('novels').findOne({ _id: new ObjectId(params.id) });
+    } catch (e) {
+      // If that fails, try with string ID
+      novel = await db.collection('novels').findOne({ _id: params.id });
+    }
     
     if (!novel) {
       return {
@@ -37,22 +47,39 @@ export default async function NovelDetailPage({ params }: { params: { id: string
   try {
     const { db } = await connectToDatabase();
     
-    // Find the novel by ID
-    const novel = await db.collection('novels').findOne({ _id: params.id });
+    // Find the novel by ID using both ObjectId and string format
+    let novel;
+    try {
+      // First try with ObjectId
+      novel = await db.collection('novels').findOne({ _id: new ObjectId(params.id) });
+    } catch (e) {
+      // If that fails, try with string ID
+      novel = await db.collection('novels').findOne({ _id: params.id });
+    }
     
     if (!novel) {
+      console.error('Novel not found:', params.id);
       notFound();
     }
     
     // Get author details if available
     let author = { name: 'Unknown Author', _id: 'unknown' };
     if (novel.author) {
-      const authorData = await db.collection('users').findOne({ _id: novel.author });
-      if (authorData) {
-        author = {
-          name: authorData.name || authorData.username || 'Unknown Author',
-          _id: authorData._id.toString()
-        };
+      try {
+        let authorId = novel.author;
+        if (typeof authorId === 'string' && ObjectId.isValid(authorId)) {
+          authorId = new ObjectId(authorId);
+        }
+        
+        const authorData = await db.collection('users').findOne({ _id: authorId });
+        if (authorData) {
+          author = {
+            name: authorData.name || authorData.username || 'Unknown Author',
+            _id: authorData._id.toString()
+          };
+        }
+      } catch (error) {
+        console.error('Error fetching author:', error);
       }
     }
     
@@ -73,8 +100,9 @@ export default async function NovelDetailPage({ params }: { params: { id: string
                     <Image
                       src={novel.coverImage}
                       alt={novel.title}
-                      fill
-                      className="object-cover rounded-lg"
+                      width={300}
+                      height={450}
+                      className="object-cover rounded-lg w-full h-full"
                       unoptimized
                     />
                   ) : (
@@ -84,9 +112,14 @@ export default async function NovelDetailPage({ params }: { params: { id: string
               </div>
               
               <div className="mt-6 flex flex-col space-y-4">
-                <button className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                  Start Reading
-                </button>
+                {chapters.length > 0 && (
+                  <Link 
+                    href={`/novels/${novel._id.toString()}/chapter/${chapters[0]._id}`}
+                    className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-center"
+                  >
+                    Start Reading
+                  </Link>
+                )}
                 <button className="w-full py-3 border border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-colors">
                   Add to Library
                 </button>
@@ -103,7 +136,7 @@ export default async function NovelDetailPage({ params }: { params: { id: string
               </div>
               
               <div className="mt-4 flex flex-wrap gap-2">
-                {genres.map((genre: string, index: number) => (
+                {genres.map((genre, index) => (
                   <Link
                     key={index}
                     href={`/explore?genre=${genre}`}
@@ -125,10 +158,10 @@ export default async function NovelDetailPage({ params }: { params: { id: string
                 <h2 className="text-xl font-semibold mb-4">Chapters</h2>
                 {chapters.length > 0 ? (
                   <div className="bg-gray-50 rounded-lg p-4">
-                    {chapters.map((chapter: any, index: number) => (
+                    {chapters.map((chapter, index) => (
                       <div key={index} className="py-3 border-b border-gray-200 last:border-0">
                         <Link
-                          href={`/novels/${novel._id}/chapter/${chapter._id}`}
+                          href={`/novels/${novel._id.toString()}/chapter/${chapter._id}`}
                           className="flex justify-between items-center hover:text-blue-600"
                         >
                           <span>
