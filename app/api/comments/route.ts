@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/app/lib/mongodb';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import { ObjectId } from 'mongodb';
 
 // GET handler to fetch comments for a chapter
@@ -31,7 +30,7 @@ export async function GET(request: NextRequest) {
 
 // POST handler to create a new comment
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session || !session.user) {
     return NextResponse.json({ error: 'You must be logged in to comment' }, { status: 401 });
@@ -76,7 +75,7 @@ export async function POST(request: NextRequest) {
 
 // DELETE handler to remove a comment
 export async function DELETE(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session || !session.user) {
     return NextResponse.json({ error: 'You must be logged in to delete a comment' }, { status: 401 });

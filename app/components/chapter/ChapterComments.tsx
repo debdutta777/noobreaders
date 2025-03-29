@@ -29,23 +29,32 @@ export default function ChapterComments({ chapterId }: ChapterCommentsProps) {
     const fetchComments = async () => {
       try {
         setIsLoading(true);
+        setError('');
+        
+        // Add a brief delay to prevent immediate API calls that might get throttled
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const response = await fetch(`/api/comments?chapterId=${chapterId}`);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch comments');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch comments');
         }
         
         const data = await response.json();
         setComments(data);
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load comments. Please try again later.';
         console.error('Error fetching comments:', err);
-        setError('Failed to load comments. Please try again later.');
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchComments();
+    if (chapterId) {
+      fetchComments();
+    }
   }, [chapterId]);
 
   // Handle comment submission
@@ -77,18 +86,19 @@ export default function ChapterComments({ chapterId }: ChapterCommentsProps) {
         }),
       });
       
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        throw new Error('Failed to submit comment');
+        throw new Error(responseData.error || 'Failed to submit comment');
       }
       
-      const savedComment = await response.json();
-      
       // Add the new comment to the list
-      setComments(prev => [savedComment, ...prev]);
+      setComments(prev => [responseData, ...prev]);
       setNewComment(''); // Clear the input
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit comment. Please try again.';
       console.error('Error submitting comment:', err);
-      setError('Failed to submit comment. Please try again.');
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -96,14 +106,19 @@ export default function ChapterComments({ chapterId }: ChapterCommentsProps) {
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Unknown date';
+    }
   };
 
   return (
@@ -122,6 +137,7 @@ export default function ChapterComments({ chapterId }: ChapterCommentsProps) {
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Share your thoughts on this chapter..."
+              disabled={isSubmitting}
             />
           </div>
           
@@ -141,17 +157,17 @@ export default function ChapterComments({ chapterId }: ChapterCommentsProps) {
         </form>
       ) : status === 'loading' ? (
         <div className="mb-8 bg-gray-50 dark:bg-gray-800 p-4 rounded-md text-center">
-          Loading...
+          <div className="animate-pulse">Loading authentication...</div>
         </div>
       ) : (
         <div className="mb-8 bg-gray-50 dark:bg-gray-800 p-4 rounded-md text-center">
           <p className="mb-2">You need to be logged in to comment</p>
-          <button 
-            onClick={() => window.location.href = '/login'} 
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+          <a 
+            href="/auth/signin?callbackUrl=/novels" 
+            className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
           >
             Log In
-          </button>
+          </a>
         </div>
       )}
 
@@ -162,10 +178,24 @@ export default function ChapterComments({ chapterId }: ChapterCommentsProps) {
         </h3>
         
         {isLoading ? (
-          <div className="text-center py-4">Loading comments...</div>
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+            <p className="mt-2 text-gray-500">Loading comments...</p>
+          </div>
+        ) : error && comments.length === 0 ? (
+          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
+            <p className="text-red-800 dark:text-red-200">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Retry
+            </button>
+          </div>
         ) : comments.length === 0 ? (
-          <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-            No comments yet. Be the first to share your thoughts!
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <p>No comments yet.</p>
+            <p className="mt-2">Be the first to share your thoughts!</p>
           </div>
         ) : (
           <div>
