@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/app/lib/mongodb';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import { ObjectId } from 'mongodb';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
     // Get the user's session
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session || !session.user || !session.user.id) {
       return NextResponse.json(
@@ -101,7 +100,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     // Get the user's session
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session || !session.user || !session.user.id) {
       return NextResponse.json(

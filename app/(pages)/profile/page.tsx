@@ -1,12 +1,11 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function ProfileRedirect() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session || !session.user || !session.user.id) {
     redirect('/signin?callbackUrl=/profile');

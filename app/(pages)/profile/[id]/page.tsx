@@ -1,8 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import { connectToDatabase } from '@/app/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import UserLibrary from '@/app/components/profile/UserLibrary';
@@ -54,7 +53,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const isOwnProfile = session?.user?.id === params.id;
   
   try {
