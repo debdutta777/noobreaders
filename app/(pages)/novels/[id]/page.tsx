@@ -66,25 +66,67 @@ export default async function NovelDetailPage({ params }: { params: { id: string
     let author = { name: 'Unknown Author', _id: 'unknown' };
     if (novel.author) {
       try {
+        // Handle different possible formats of author ID
         let authorId = novel.author;
-        if (typeof authorId === 'string' && ObjectId.isValid(authorId)) {
-          authorId = new ObjectId(authorId);
+        
+        // If authorId is an object with an id field (e.g. { id: '123' })
+        if (typeof authorId === 'object' && authorId !== null && 'id' in authorId) {
+          authorId = authorId.id;
         }
         
+        // If authorId is a string that looks like an ObjectId
+        if (typeof authorId === 'string' && /^[0-9a-fA-F]{24}$/.test(authorId)) {
+          try {
+            authorId = new ObjectId(authorId);
+          } catch (e) {
+            console.error('Invalid ObjectId format for author:', authorId);
+          }
+        }
+        
+        // Try to find the author in the users collection
         const authorData = await db.collection('users').findOne({ _id: authorId });
+        
         if (authorData) {
           author = {
             name: authorData.name || authorData.username || 'Unknown Author',
             _id: authorData._id.toString()
           };
+        } else {
+          // If not found in users, try the writers collection
+          const writerData = await db.collection('writers').findOne({ _id: authorId });
+          if (writerData) {
+            author = {
+              name: writerData.name || writerData.username || 'Unknown Author',
+              _id: writerData._id.toString()
+            };
+          }
         }
+        
+        console.log('Author data found:', author);
       } catch (error) {
         console.error('Error fetching author:', error);
       }
     }
     
-    // Get chapters if available
-    const chapters = novel.chapters || [];
+    // Get chapters if available - handle different chapter storage formats
+    let chapters = [];
+    
+    if (novel.chapters && Array.isArray(novel.chapters) && novel.chapters.length > 0) {
+      // Direct chapters array
+      chapters = novel.chapters;
+    } else if (novel.chapterIds && Array.isArray(novel.chapterIds) && novel.chapterIds.length > 0) {
+      // If chapters are stored as references
+      try {
+        const chapterDocs = await db.collection('chapters')
+          .find({ _id: { $in: novel.chapterIds.map(id => typeof id === 'string' ? new ObjectId(id) : id) } })
+          .toArray();
+        chapters = chapterDocs;
+      } catch (error) {
+        console.error('Error fetching chapters:', error);
+      }
+    }
+    
+    console.log(`Found ${chapters.length} chapters for novel:`, novel.title);
     
     // Format genres
     const genres = novel.genres || [];
@@ -114,7 +156,7 @@ export default async function NovelDetailPage({ params }: { params: { id: string
               <div className="mt-6 flex flex-col space-y-4">
                 {chapters.length > 0 && (
                   <Link 
-                    href={`/novels/${novel._id.toString()}/chapter/${chapters[0]._id}`}
+                    href={`/novels/${params.id}/chapter/${chapters[0]._id}`}
                     className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-center"
                   >
                     Start Reading
@@ -156,19 +198,19 @@ export default async function NovelDetailPage({ params }: { params: { id: string
               
               <div className="mt-8">
                 <h2 className="text-xl font-semibold mb-4">Chapters</h2>
-                {chapters.length > 0 ? (
+                {chapters && chapters.length > 0 ? (
                   <div className="bg-gray-50 rounded-lg p-4">
                     {chapters.map((chapter, index) => (
                       <div key={index} className="py-3 border-b border-gray-200 last:border-0">
                         <Link
-                          href={`/novels/${novel._id.toString()}/chapter/${chapter._id}`}
+                          href={`/novels/${params.id}/chapter/${chapter._id}`}
                           className="flex justify-between items-center hover:text-blue-600"
                         >
                           <span>
-                            Chapter {chapter.chapterNumber}: {chapter.title}
+                            Chapter {chapter.chapterNumber || index + 1}: {chapter.title || `Chapter ${index + 1}`}
                           </span>
                           <span className="text-sm text-gray-500">
-                            {new Date(chapter.createdAt).toLocaleDateString()}
+                            {chapter.createdAt ? new Date(chapter.createdAt).toLocaleDateString() : 'Unknown date'}
                           </span>
                         </Link>
                       </div>
