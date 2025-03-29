@@ -1,9 +1,8 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
+import { auth } from '@/auth';
 import LatestUpdates from './components/home/LatestUpdates';
-import ContinueReading from './components/home/ContinueReading';
 import PopularNovelsWrapper from './components/home/PopularNovelsWrapper';
 import GenreRecommendationsWrapper from './components/home/GenreRecommendationsWrapper';
 
@@ -14,7 +13,23 @@ export const metadata: Metadata = {
   description: 'Discover and read the best web novels from new and emerging authors',
 };
 
-export default function HomePage() {
+// Wrapper component for Continue Reading that only renders for logged-in users
+async function ContinueReadingSection() {
+  const session = await auth();
+  
+  if (!session || !session.user) {
+    return null;
+  }
+  
+  const userId = (session.user as any).id;
+  
+  // Don't import the component if no user is logged in
+  const ContinueReading = (await import('./components/home/ContinueReading')).default;
+  
+  return <ContinueReading userId={userId} />;
+}
+
+export default async function HomePage() {
   return (
     <main>
       {/* Hero Section */}
@@ -44,14 +59,8 @@ export default function HomePage() {
               </div>
             </div>
             <div className="md:w-1/2 relative">
-              <div className="relative h-64 md:h-96 w-full">
-                <Image
-                  src="/images/placeholder-cover.jpg"
-                  alt="Books illustration"
-                  fill
-                  className="object-cover rounded-lg shadow-2xl"
-                  priority
-                />
+              <div className="bg-blue-100 h-64 md:h-96 w-full rounded-lg flex items-center justify-center">
+                <div className="text-blue-600 font-bold text-xl">NoobReaders</div>
               </div>
             </div>
           </div>
@@ -63,7 +72,8 @@ export default function HomePage() {
         <LatestUpdates />
         
         {/* Continue Reading Section - Only visible for logged-in users */}
-        <ContinueReading />
+        {/* @ts-expect-error Server Component */}
+        <ContinueReadingSection />
         
         {/* Popular Novels Section */}
         <PopularNovelsWrapper />
