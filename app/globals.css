@@ -158,3 +158,59 @@ body {
   display: block;
   margin: 1.5rem auto;
 }
+
+/* Add styles for external chapter images section */
+.chapter-external-images {
+  margin-top: 3rem;
+}
+
+.chapter-external-images h3 {
+  font-family: 'Georgia', serif;
+  color: var(--chapter-text);
+  font-weight: 500;
+  position: relative;
+}
+
+.chapter-external-images h3:after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 2px;
+  background-color: var(--chapter-text);
+  opacity: 0.2;
+}
+
+/* Improve image styling in grid layout */
+.chapter-external-images .chapter-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 0.5rem;
+  transition: transform 0.2s ease;
+}
+
+.theme-light .chapter-external-images .chapter-image-container {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+.theme-dark .chapter-external-images .chapter-image-container {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.chapter-external-images .chapter-image-container:hover {
+  transform: translateY(-2px);
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 640px) {
+  .chapter-external-images .grid {
+    grid-template-columns: 1fr;
+  }
+}

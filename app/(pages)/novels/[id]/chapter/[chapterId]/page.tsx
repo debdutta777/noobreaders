@@ -347,7 +347,7 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
           {chapter.createdAt}
         </p>
         
-        <ChapterContent content={chapter.content} />
+        <ChapterContent content={chapter.content} externalImages={chapter.images} />
         
         <div className="flex justify-between items-center mt-12 border-t border-gray-200 dark:border-gray-700 pt-6">
           {navigation.previousChapter ? (
