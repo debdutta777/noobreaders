@@ -1,37 +1,16 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/app/lib/mongodb';
+import { ObjectId } from 'mongodb';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
     const { db } = await connectToDatabase();
     
-    // Check if we have novels collection
-    const hasNovels = await db.listCollections({ name: 'novels' }).hasNext();
-    
-    if (!hasNovels) {
-      console.log('No novels collection found, creating sample novels');
-      // Create sample novels if no collection exists
-      await db.collection('novels').insertOne({
-        title: 'The First Adventure',
-        description: 'A captivating tale of adventure and discovery...',
-        coverImage: '/images/placeholder-cover.jpg',
-        author: null, // No author for sample
-        views: 120,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        chapters: [
-          {
-            title: 'The Beginning',
-            chapterNumber: 1,
-            _id: 'sample-chapter-1',
-            createdAt: new Date()
-          }
-        ]
-      });
-    }
-    
-    // Find novels with chapters
-    const novels = await db
+    // First, check novels with embedded chapters
+    const novelsWithEmbeddedChapters = await db
       .collection('novels')
       .aggregate([
         {
@@ -41,29 +20,95 @@ export async function GET() {
         },
         {
           $addFields: {
-            latestChapter: { $arrayElemAt: ['$chapters', -1] }
+            latestChapter: { $arrayElemAt: ['$chapters', -1] },
+            chapterType: 'embedded'
           }
         },
         {
           $sort: { 'updatedAt': -1 }
         },
         {
-          $limit: 5
+          $limit: 10
         }
       ])
       .toArray();
     
+    // Next, get novels with chapters in the chapters collection
+    const novelsWithChapterIds = await db
+      .collection('novels')
+      .aggregate([
+        {
+          $match: {
+            'chapterIds': { $exists: true, $ne: [] }
+          }
+        },
+        {
+          $sort: { 'updatedAt': -1 }
+        },
+        {
+          $limit: 10
+        }
+      ])
+      .toArray();
+    
+    // For novels with separate chapters, fetch the latest chapter for each
+    const novelsWithSeparateChapters = await Promise.all(
+      novelsWithChapterIds.map(async (novel) => {
+        try {
+          const chapterIds = novel.chapterIds || [];
+          // Make sure we have valid ObjectIds for lookup
+          const validChapterIds = chapterIds
+            .filter(id => id && (typeof id === 'string' ? /^[0-9a-fA-F]{24}$/.test(id) : true))
+            .map(id => typeof id === 'string' ? new ObjectId(id) : id);
+          
+          if (validChapterIds.length === 0) {
+            return { ...novel, latestChapter: null, chapterType: 'none' };
+          }
+          
+          // Find the latest chapter by creation date
+          const latestChapter = await db
+            .collection('chapters')
+            .find({ _id: { $in: validChapterIds } })
+            .sort({ createdAt: -1 })
+            .limit(1)
+            .toArray();
+          
+          return { 
+            ...novel, 
+            latestChapter: latestChapter[0] || null,
+            chapterType: latestChapter[0] ? 'separate' : 'none'
+          };
+        } catch (error) {
+          console.error('Error fetching chapters for novel:', novel._id, error);
+          return { ...novel, latestChapter: null, chapterType: 'error' };
+        }
+      })
+    );
+    
+    // Combine and sort all novels by the latest chapter date
+    const allNovels = [...novelsWithEmbeddedChapters, ...novelsWithSeparateChapters]
+      .filter(novel => novel.latestChapter) // Only keep novels with chapters
+      .sort((a, b) => {
+        const dateA = a.latestChapter?.createdAt ? new Date(a.latestChapter.createdAt) : new Date(0);
+        const dateB = b.latestChapter?.createdAt ? new Date(b.latestChapter.createdAt) : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 10); // Take top 10
+    
     // Format the novels to match the expected structure
     const formattedNovels = await Promise.all(
-      novels.map(async (novel) => {
+      allNovels.map(async (novel) => {
         // If the novel has an author ID, fetch the author details
         let authorDetails = { _id: 'unknown', name: 'Unknown Author' };
         
         if (novel.author) {
           try {
+            const authorId = typeof novel.author === 'string' ? 
+              new ObjectId(novel.author) : novel.author;
+            
             const authorDoc = await db
               .collection('users')
-              .findOne({ _id: novel.author });
+              .findOne({ _id: authorId });
               
             if (authorDoc) {
               authorDetails = {
