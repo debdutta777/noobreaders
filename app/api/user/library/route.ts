@@ -131,6 +131,7 @@ export async function GET(req: Request) {
     const session = await auth();
     
     if (!session || !session.user || !session.user.email) {
+      console.log('Authentication required - missing session or email');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -138,6 +139,8 @@ export async function GET(req: Request) {
     }
     
     const userEmail = session.user.email;
+    console.log('Fetching library for user email:', userEmail);
+    
     const { db } = await connectToDatabase();
     
     // Find user by email first
@@ -147,45 +150,96 @@ export async function GET(req: Request) {
     }
     
     if (!user) {
-      return NextResponse.json({ 
+      console.log('User not found in database with email:', userEmail);
+      return NextResponse.json({
         error: 'User not found in database. Please complete your profile.',
-        novels: [] 
+        novels: []
       }, { status: 404 });
     }
     
+    console.log('Found user:', user._id);
+    
     // Find the user's library using their MongoDB _id
     const userObjectId = user._id;
-    const library = await db.collection('userLibraries').findOne({ userId: userObjectId });
+    const library = await db.collection('userLibraries').findOne({ 
+      $or: [
+        { userId: userObjectId },
+        { userEmail: userEmail }
+      ]
+    });
+    
+    console.log('Library found:', library ? 'Yes' : 'No');
     
     if (!library || !library.novelIds || library.novelIds.length === 0) {
+      console.log('No novels in library or library not found');
       return NextResponse.json({ novels: [] });
+    }
+    
+    console.log('Number of novels in library:', library.novelIds.length);
+    
+    // Convert all IDs to ObjectId safely
+    const validNovelIds = [];
+    for (const id of library.novelIds) {
+      try {
+        if (typeof id === 'string') {
+          validNovelIds.push(new ObjectId(id));
+        } else {
+          validNovelIds.push(id);
+        }
+      } catch (error) {
+        console.error('Invalid novel ID in library:', id);
+        // Skip invalid IDs
+      }
     }
     
     // Get the novel details
     const novels = await db.collection('novels')
-      .find({ _id: { $in: library.novelIds } })
+      .find({ _id: { $in: validNovelIds } })
       .project({
         _id: 1,
         title: 1,
         coverImage: 1,
         author: 1,
+        description: 1,
+        genres: 1,
         updatedAt: 1
       })
       .toArray();
     
-    // Format the novels
-    const formattedNovels = novels.map(novel => ({
-      ...novel,
-      _id: novel._id.toString(),
-      author: novel.author ? {
-        _id: novel.author._id ? novel.author._id.toString() : null,
-        name: novel.author.name || 'Unknown Author'
-      } : {
-        _id: null,
-        name: 'Unknown Author'
-      }
-    }));
+    console.log('Number of novels retrieved:', novels.length);
     
+    // Format the novels
+    const formattedNovels = novels.map(novel => {
+      // Handle author info safely
+      let authorInfo = { _id: null, name: 'Unknown Author' };
+      if (novel.author) {
+        if (typeof novel.author === 'object') {
+          // If author is an object with _id
+          authorInfo = {
+            _id: novel.author._id ? novel.author._id.toString() : null,
+            name: novel.author.name || 'Unknown Author'
+          };
+        } else if (typeof novel.author === 'string') {
+          // If author is just an ID string
+          authorInfo = {
+            _id: novel.author,
+            name: 'Unknown Author'
+          };
+        }
+      }
+
+      return {
+        _id: novel._id.toString(),
+        title: novel.title || 'Untitled Novel',
+        coverImage: novel.coverImage || '/images/placeholder-cover.jpg',
+        description: novel.description || '',
+        genres: novel.genres || [],
+        author: authorInfo,
+        updatedAt: novel.updatedAt || new Date()
+      };
+    });
+    
+    console.log('Returning formatted novels');
     return NextResponse.json({ novels: formattedNovels });
   } catch (error) {
     console.error('Error fetching user library:', error);
