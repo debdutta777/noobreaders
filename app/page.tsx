@@ -30,6 +30,9 @@ async function ContinueReadingSection() {
 }
 
 export default async function HomePage() {
+  const session = await auth();
+  const isLoggedIn = !!(session && session.user);
+  
   return (
     <main>
       {/* Hero Section */}
@@ -50,12 +53,21 @@ export default async function HomePage() {
                 >
                   Explore Novels
                 </Link>
-                <Link
-                  href="/auth/signup"
-                  className="px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-400 transition-colors"
-                >
-                  Sign Up Free
-                </Link>
+                {isLoggedIn ? (
+                  <Link
+                    href="/library"
+                    className="px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-400 transition-colors"
+                  >
+                    My Library
+                  </Link>
+                ) : (
+                  <Link
+                    href="/auth/signup"
+                    className="px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-400 transition-colors"
+                  >
+                    Sign Up Free
+                  </Link>
+                )}
               </div>
             </div>
             <div className="md:w-1/2 relative">
@@ -99,19 +111,45 @@ export default async function HomePage() {
           </div>
         </section>
         
-        {/* Call-to-Action Section */}
-        <section className="py-16 text-center">
-          <h2 className="text-3xl font-bold mb-4">Start Your Reading Journey Today</h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Join thousands of readers discovering new stories every day. Sign up for free and start reading instantly.
-          </p>
-          <Link
-            href="/auth/signup"
-            className="px-8 py-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors inline-block"
-          >
-            Create an Account
-          </Link>
-        </section>
+        {/* Call-to-Action Section - Only shown for non-logged in users */}
+        {!isLoggedIn && (
+          <section className="py-16 text-center">
+            <h2 className="text-3xl font-bold mb-4">Start Your Reading Journey Today</h2>
+            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+              Join thousands of readers discovering new stories every day. Sign up for free and start reading instantly.
+            </p>
+            <Link
+              href="/auth/signup"
+              className="px-8 py-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors inline-block"
+            >
+              Create an Account
+            </Link>
+          </section>
+        )}
+        
+        {/* Alternative CTA for logged-in users */}
+        {isLoggedIn && (
+          <section className="py-16 text-center">
+            <h2 className="text-3xl font-bold mb-4">Continue Your Reading Journey</h2>
+            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+              Discover new books or continue reading your favorites from your personal library.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link
+                href="/library"
+                className="px-8 py-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors inline-block"
+              >
+                My Library
+              </Link>
+              <Link
+                href="/explore"
+                className="px-8 py-4 border border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-colors inline-block"
+              >
+                Discover More
+              </Link>
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );
