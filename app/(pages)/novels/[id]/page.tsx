@@ -113,16 +113,34 @@ export default async function NovelDetailPage({ params }: { params: { id: string
     // Get chapters if available - handle different chapter storage formats
     let chapters = [];
     
-    // Case 1: Embedded chapters in the novel document
-    if (novel.chapters && Array.isArray(novel.chapters) && novel.chapters.length > 0) {
+    // First look for chapters in the chapters collection
+    try {
+      const chaptersFromCollection = await db.collection('chapters')
+        .find({ novelId: new ObjectId(params.id) })
+        .sort({ chapterNumber: 1 })
+        .toArray();
+      
+      if (chaptersFromCollection && chaptersFromCollection.length > 0) {
+        chapters = chaptersFromCollection.map(chapter => ({
+          ...chapter,
+          _id: chapter._id.toString()
+        }));
+        console.log(`Found ${chapters.length} chapters in collection for novel:`, novel.title);
+      }
+    } catch (error) {
+      console.error('Error fetching chapters from collection:', error);
+    }
+    
+    // If no chapters found in collection, check for embedded chapters
+    if (chapters.length === 0 && novel.chapters && Array.isArray(novel.chapters) && novel.chapters.length > 0) {
       chapters = novel.chapters.map(chapter => ({
         ...chapter,
         _id: chapter._id ? chapter._id.toString() : `chapter-${chapter.chapterNumber || 0}`,
       }));
       console.log(`Found ${chapters.length} embedded chapters`);
     } 
-    // Case 2: Chapters stored as references
-    else if (novel.chapterIds && Array.isArray(novel.chapterIds) && novel.chapterIds.length > 0) {
+    // Check for chapter references
+    else if (chapters.length === 0 && novel.chapterIds && Array.isArray(novel.chapterIds) && novel.chapterIds.length > 0) {
       try {
         const chapterObjects = novel.chapterIds
           .filter(id => id) // Remove null/undefined
@@ -149,18 +167,6 @@ export default async function NovelDetailPage({ params }: { params: { id: string
       } catch (error) {
         console.error('Error fetching chapters:', error);
       }
-    }
-    
-    if (chapters.length === 0) {
-      console.log('No chapters found, adding dummy chapter for testing');
-      chapters = [
-        {
-          _id: 'dummy-chapter-1',
-          title: 'Chapter 1',
-          chapterNumber: 1,
-          createdAt: new Date().toISOString()
-        }
-      ];
     }
     
     // Sort chapters by chapter number

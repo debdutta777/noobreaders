@@ -20,78 +20,119 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
   try {
     const { db } = await connectToDatabase();
     
-    // Find the novel
-    let novel;
-    try {
-      novel = await db.collection('novels').findOne({ _id: new ObjectId(novelId) });
-    } catch (error) {
-      console.error('Error fetching novel with ObjectId:', error);
-      novel = await db.collection('novels').findOne({ _id: novelId });
-    }
-    
-    if (!novel) {
-      console.error('Novel not found:', novelId);
-      notFound();
-    }
-    
-    // Find the chapter - handle both embedded chapters and referenced chapters
+    // First, try direct lookup in chapters collection
     let chapter = null;
-    let previousChapter = null;
-    let nextChapter = null;
+    let novel = null;
     
-    // Case 1: If the novel has embedded chapters
-    if (novel.chapters && Array.isArray(novel.chapters)) {
-      const chapterIndex = novel.chapters.findIndex((ch: any) => 
-        ch._id && (ch._id.toString() === chapterId || ch._id === chapterId)
-      );
-      
-      if (chapterIndex !== -1) {
-        chapter = novel.chapters[chapterIndex];
-        if (chapterIndex > 0) {
-          previousChapter = novel.chapters[chapterIndex - 1];
-        }
-        if (chapterIndex < novel.chapters.length - 1) {
-          nextChapter = novel.chapters[chapterIndex + 1];
-        }
-      }
+    // Convert IDs to ObjectId when possible
+    let novelObjectId;
+    let chapterObjectId;
+    
+    try {
+      novelObjectId = new ObjectId(novelId);
+    } catch (error) {
+      console.error('Error converting novel ID to ObjectId:', error);
+      novelObjectId = novelId;
     }
     
-    // Case 2: If chapter is stored separately
-    if (!chapter && chapterId !== 'dummy-chapter-1') {
+    try {
+      if (chapterId !== 'dummy-chapter-1') {
+        chapterObjectId = new ObjectId(chapterId);
+      }
+    } catch (error) {
+      console.error('Error converting chapter ID to ObjectId:', error);
+      chapterObjectId = chapterId;
+    }
+    
+    console.log('Looking for chapter with ID:', chapterId);
+    
+    // Try to find chapter directly first (for non-dummy chapters)
+    if (chapterId !== 'dummy-chapter-1') {
       try {
-        chapter = await db.collection('chapters').findOne({ _id: new ObjectId(chapterId) });
-      } catch (error) {
-        console.error('Error fetching chapter with ObjectId:', error);
-        chapter = await db.collection('chapters').findOne({ _id: chapterId });
-      }
-      
-      // Get previous and next chapters if possible
-      if (chapter && novel.chapterIds && Array.isArray(novel.chapterIds)) {
-        const chapterIds = novel.chapterIds.map((id: any) => 
-          id && typeof id === 'object' ? id.toString() : id
-        );
-        const currentIndex = chapterIds.indexOf(chapterId);
+        // Try with ObjectId
+        chapter = await db.collection('chapters').findOne({ 
+          _id: chapterObjectId 
+        });
         
-        if (currentIndex > 0) {
-          previousChapter = await db.collection('chapters').findOne({ 
-            _id: typeof novel.chapterIds[currentIndex - 1] === 'string' 
-              ? new ObjectId(novel.chapterIds[currentIndex - 1]) 
-              : novel.chapterIds[currentIndex - 1] 
+        if (!chapter) {
+          // Try with string ID
+          chapter = await db.collection('chapters').findOne({ 
+            _id: chapterId 
           });
         }
         
-        if (currentIndex < chapterIds.length - 1) {
-          nextChapter = await db.collection('chapters').findOne({ 
-            _id: typeof novel.chapterIds[currentIndex + 1] === 'string' 
-              ? new ObjectId(novel.chapterIds[currentIndex + 1]) 
-              : novel.chapterIds[currentIndex + 1] 
+        if (!chapter) {
+          // Try by novel ID and chapter number (in case ID is wrong but chapter exists)
+          console.log('Trying to find chapter by novel ID and number');
+          chapter = await db.collection('chapters').findOne({
+            novelId: novelObjectId,
+            chapterNumber: parseInt(chapterId.replace('dummy-chapter-', '')) || 1
           });
+        }
+        
+        if (chapter) {
+          console.log('Found chapter in chapters collection:', chapter.title);
+        }
+      } catch (error) {
+        console.error('Error fetching chapter directly:', error);
+      }
+    }
+    
+    // If chapter found, fetch the novel
+    if (chapter) {
+      try {
+        novel = await db.collection('novels').findOne({ 
+          _id: chapter.novelId || novelObjectId 
+        });
+      } catch (error) {
+        console.error('Error fetching novel for found chapter:', error);
+      }
+    }
+    
+    // If chapter not found, fetch the novel and try to find embedded chapter
+    if (!chapter) {
+      // Find the novel
+      try {
+        novel = await db.collection('novels').findOne({ _id: novelObjectId });
+      } catch (error) {
+        console.error('Error fetching novel with ObjectId:', error);
+        novel = await db.collection('novels').findOne({ _id: novelId });
+      }
+      
+      if (!novel) {
+        console.error('Novel not found:', novelId);
+        notFound();
+      }
+      
+      // Check for embedded chapters
+      if (novel.chapters && Array.isArray(novel.chapters)) {
+        const chapterIndex = novel.chapters.findIndex((ch: any) => 
+          ch._id && (ch._id.toString() === chapterId || ch._id === chapterId)
+        );
+        
+        if (chapterIndex !== -1) {
+          chapter = novel.chapters[chapterIndex];
+          console.log('Found embedded chapter:', chapter.title);
         }
       }
     }
     
-    // If dummy chapter (used when no chapters exist), create some content
-    if (chapterId === 'dummy-chapter-1' || !chapter) {
+    // If still no chapter, try a fallback search for chapter 1 of this novel
+    if (!chapter && novel) {
+      console.log('Trying to find first chapter for this novel');
+      chapter = await db.collection('chapters').findOne({
+        novelId: novelObjectId,
+        chapterNumber: 1
+      });
+      
+      if (chapter) {
+        console.log('Found first chapter in collection:', chapter.title);
+      }
+    }
+    
+    // If still no chapter, create a dummy chapter
+    if (!chapter && novel) {
+      console.log('Creating dummy chapter as fallback');
       chapter = {
         _id: 'dummy-chapter-1',
         title: 'Chapter 1',
@@ -103,9 +144,74 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
       };
     }
     
-    if (!chapter) {
-      console.error('Chapter not found:', chapterId);
+    if (!novel || !chapter) {
+      console.error('Required data not found. Novel:', novel ? 'Found' : 'Not found', 
+                   'Chapter:', chapter ? 'Found' : 'Not found');
       notFound();
+    }
+    
+    // Find previous and next chapters
+    let previousChapter = null;
+    let nextChapter = null;
+    
+    if (novel.chapterIds && Array.isArray(novel.chapterIds)) {
+      // If the novel has external chapter references
+      const chapterIds = novel.chapterIds.map((id: any) => 
+        id && typeof id === 'object' ? id.toString() : id
+      );
+      
+      const currentChapterId = chapter._id.toString ? chapter._id.toString() : chapter._id;
+      const currentIndex = chapterIds.indexOf(currentChapterId);
+      
+      if (currentIndex > 0) {
+        try {
+          const prevId = novel.chapterIds[currentIndex - 1];
+          const prevObjId = typeof prevId === 'string' ? new ObjectId(prevId) : prevId;
+          previousChapter = await db.collection('chapters').findOne({ _id: prevObjId });
+        } catch (error) {
+          console.error('Error fetching previous chapter:', error);
+        }
+      }
+      
+      if (currentIndex < chapterIds.length - 1 && currentIndex !== -1) {
+        try {
+          const nextId = novel.chapterIds[currentIndex + 1];
+          const nextObjId = typeof nextId === 'string' ? new ObjectId(nextId) : nextId;
+          nextChapter = await db.collection('chapters').findOne({ _id: nextObjId });
+        } catch (error) {
+          console.error('Error fetching next chapter:', error);
+        }
+      }
+    } else if (novel.chapters && Array.isArray(novel.chapters)) {
+      // If the novel has embedded chapters
+      const currentIndex = novel.chapters.findIndex((ch: any) => 
+        ch._id && (ch._id.toString() === chapterId || ch._id === chapterId)
+      );
+      
+      if (currentIndex > 0) {
+        previousChapter = novel.chapters[currentIndex - 1];
+      }
+      
+      if (currentIndex < novel.chapters.length - 1 && currentIndex !== -1) {
+        nextChapter = novel.chapters[currentIndex + 1];
+      }
+    } else {
+      // If no chapter structure in novel, try to find by chapter number
+      const currentNumber = chapter.chapterNumber || 1;
+      
+      try {
+        previousChapter = await db.collection('chapters').findOne({
+          novelId: novelObjectId,
+          chapterNumber: currentNumber - 1
+        });
+        
+        nextChapter = await db.collection('chapters').findOne({
+          novelId: novelObjectId,
+          chapterNumber: currentNumber + 1
+        });
+      } catch (error) {
+        console.error('Error fetching adjacent chapters by number:', error);
+      }
     }
     
     // Format chapter for rendering
