@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -15,11 +15,45 @@ export default function AddToLibraryButton({ novelId }: AddToLibraryButtonProps)
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Check if novel is already in library on mount
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const checkLibrary = async () => {
+        try {
+          const response = await fetch('/api/user/library', {
+            method: 'GET',
+            headers: {
+              'Cache-Control': 'no-cache',
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.novels && Array.isArray(data.novels)) {
+              const isInLibrary = data.novels.some(novel => novel._id === novelId);
+              if (isInLibrary) {
+                setAdded(true);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error checking library status:', error);
+        }
+      };
+
+      checkLibrary();
+    }
+  }, [novelId, status]);
+
   const handleAddToLibrary = async () => {
     // If not logged in, redirect to login
     if (status !== 'authenticated' || !session) {
-      router.push('/signin');
+      router.push(`/auth/signin?callbackUrl=/novels/${novelId}`);
       return;
+    }
+
+    if (added) {
+      return; // Already added
     }
 
     setLoading(true);
@@ -36,9 +70,10 @@ export default function AddToLibraryButton({ novelId }: AddToLibraryButtonProps)
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add to library');
+        throw new Error(data.error || 'Failed to add to library');
       }
 
       setAdded(true);
