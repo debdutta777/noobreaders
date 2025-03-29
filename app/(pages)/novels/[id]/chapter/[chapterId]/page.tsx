@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { connectToDatabase } from '@/app/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import ThemeToggle from '@/app/components/ThemeToggle';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -241,7 +242,7 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
     
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-6">
+        <div className="flex justify-between items-center mb-6">
           <Link 
             href={`/novels/${novelId}`}
             className="text-blue-600 hover:text-blue-800 flex items-center"
@@ -251,29 +252,31 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
             </svg>
             Back to Novel
           </Link>
+          
+          <ThemeToggle />
         </div>
         
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="chapter-container bg-white dark:bg-gray-900 rounded-lg shadow-md overflow-hidden">
           <div className="p-6 md:p-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
               {formattedChapter.title}
             </h1>
-            <p className="text-gray-600 mb-8 border-b pb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-8 border-b border-gray-200 dark:border-gray-700 pb-4">
               {novel.title} • {formattedChapter.createdAt}
             </p>
             
-            <div className="prose prose-lg max-w-none text-gray-800 leading-relaxed">
+            <div className="prose prose-lg max-w-none text-gray-800 dark:text-gray-200 leading-relaxed">
               <div 
                 dangerouslySetInnerHTML={{ __html: formattedChapter.content }} 
                 className="chapter-content"
               />
             </div>
             
-            <div className="mt-12 flex justify-between border-t pt-6">
+            <div className="mt-12 flex justify-between border-t border-gray-200 dark:border-gray-700 pt-6">
               {previousChapter ? (
                 <Link
                   href={`/novels/${novelId}/chapter/${previousChapter._id}`}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md flex items-center"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md flex items-center"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

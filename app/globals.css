@@ -3,6 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --chapter-bg: #ffffff;
+  --chapter-text: #1a1a1a;
 }
 
 @theme inline {
@@ -16,6 +18,8 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --chapter-bg: #121212;
+    --chapter-text: #e0e0e0;
   }
 }
 
@@ -30,7 +34,7 @@ body {
   font-family: 'Georgia', serif;
   font-size: 1.125rem;
   line-height: 1.8;
-  color: #333;
+  color: var(--chapter-text);
 }
 
 .chapter-content p {
@@ -42,11 +46,15 @@ body {
   text-indent: 0;
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .chapter-content {
-    color: #e0e0e0;
-  }
+/* Custom theme classes */
+.theme-light {
+  --chapter-bg: #ffffff;
+  --chapter-text: #1a1a1a;
+}
+
+.theme-dark {
+  --chapter-bg: #121212;
+  --chapter-text: #e0e0e0;
 }
 
 /* Better typography for reading */
@@ -65,4 +73,10 @@ body {
     font-size: 1rem;
     line-height: 1.7;
   }
+}
+
+/* Chapter container */
+.chapter-container {
+  background-color: var(--chapter-bg);
+  color: var(--chapter-text);
 }
