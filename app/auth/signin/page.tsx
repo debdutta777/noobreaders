@@ -1,23 +1,62 @@
-import React from 'react';
-import { Metadata } from 'next';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import SignInButtons from './components/SignInButtons';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Sign In | NoobReaders',
-  description: 'Sign in to your NoobReaders account',
-};
+export default function SignInPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-export default async function SignInPage() {
-  const session = await auth();
-  
-  if (session) {
-    redirect('/');
-  }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    
+    try {
+      // Basic validation
+      if (!formData.email || !formData.password) {
+        setError('Email and password are required');
+        setLoading(false);
+        return;
+      }
+      
+      // Sign in with credentials
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: formData.email,
+        password: formData.password,
+      });
+      
+      if (result?.error) {
+        setError('Invalid email or password');
+        setLoading(false);
+      } else {
+        // Redirect to home page on successful login
+        router.push('/');
+      }
+    } catch (err) {
+      setError('An error occurred during sign in');
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
@@ -28,7 +67,13 @@ export default async function SignInPage() {
         </div>
         
         <div className="bg-white p-8 rounded-lg shadow-md">
-          <form action="/api/auth/callback/credentials" method="POST" className="space-y-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
+              {error}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
@@ -37,6 +82,8 @@ export default async function SignInPage() {
                 id="email"
                 name="email"
                 type="email"
+                value={formData.email}
+                onChange={handleChange}
                 required
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
               />
@@ -47,14 +94,14 @@ export default async function SignInPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
-                  Forgot password?
-                </Link>
+                {/* Removed the forgot password link since the page doesn't exist yet */}
               </div>
               <input
                 id="password"
                 name="password"
                 type="password"
+                value={formData.password}
+                onChange={handleChange}
                 required
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
               />
@@ -63,9 +110,12 @@ export default async function SignInPage() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={loading}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                Sign In
+                {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </div>
           </form>
