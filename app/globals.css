@@ -214,3 +214,103 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Add styles for floated chapter images */
+.chapter-content img.float-right {
+  float: right;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chapter-content img.float-left {
+  float: left;
+  margin-right: 1.5rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.theme-dark .chapter-content img.float-right,
+.theme-dark .chapter-content img.float-left {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Make sure text flows around the image properly */
+.clearfix::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+/* Responsive adjustments for floated images */
+@media (max-width: 640px) {
+  .chapter-content img.float-right,
+  .chapter-content img.float-left {
+    max-width: 50%;
+  }
+}
+
+@media (max-width: 480px) {
+  .chapter-content img.float-right,
+  .chapter-content img.float-left {
+    float: none;
+    margin: 1.5rem auto;
+    max-width: 100%;
+    display: block;
+  }
+}
+
+/* Comments section styling */
+.chapter-comments {
+  margin-top: 2rem;
+}
+
+.comment-list {
+  margin-top: 1.5rem;
+}
+
+.comment-item {
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  background-color: rgba(0, 0, 0, 0.02);
+  transition: background-color 0.2s ease;
+}
+
+.theme-dark .comment-item {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.comment-item:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.theme-dark .comment-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.comment-user {
+  font-weight: 600;
+  color: var(--chapter-text);
+}
+
+.comment-date {
+  font-size: 0.85rem;
+  color: var(--chapter-text);
+  opacity: 0.6;
+}
+
+.comment-content {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--chapter-text);
+}

@@ -72,14 +72,14 @@ export default function ChapterContent({ content, externalImages = [] }: Chapter
         let newContent = content;
         images.forEach((img: any, index: number) => {
           const marker = `<div data-chapter-image="${index}"></div>`;
-          // We can't directly insert React components into HTML string
-          // Instead, we'll use a placeholder that will be replaced by React
+          // Now we add classes to position images to the right or left alternately
+          const alignment = index % 2 === 0 ? 'float-right ml-6 mb-4' : 'float-left mr-6 mb-4';
           newContent = newContent.replace(
             marker,
             `<img 
               src="${img.src}" 
               alt="${img.alt}" 
-              class="chapter-image cursor-pointer" 
+              class="chapter-image cursor-pointer ${alignment} max-w-[40%] md:max-w-[300px]" 
               data-index="${index}" 
               onclick="document.dispatchEvent(new CustomEvent('expand-image', {detail: {src: '${img.src}', alt: '${img.alt}'}}));"
             />`
@@ -141,7 +141,7 @@ export default function ChapterContent({ content, externalImages = [] }: Chapter
     <>
       <div 
         dangerouslySetInnerHTML={{ __html: processedContent }} 
-        className="chapter-content"
+        className="chapter-content clearfix"
       />
       
       {/* Render external images from database */}

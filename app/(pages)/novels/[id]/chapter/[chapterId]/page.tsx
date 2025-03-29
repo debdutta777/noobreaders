@@ -5,6 +5,7 @@ import { connectToDatabase } from '@/app/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import ChapterContent from '@/app/components/chapter/ChapterContent';
+import ChapterComments from '@/app/components/chapter/ChapterComments';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -342,10 +343,12 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
           <ThemeToggle />
         </div>
         
-        <h1 className="text-3xl font-bold mb-2">{chapter.title}</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
-          {chapter.createdAt}
-        </p>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-2">{chapter.title}</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {chapter.createdAt}
+          </p>
+        </div>
         
         <ChapterContent content={chapter.content} externalImages={chapter.images} />
         
@@ -377,6 +380,11 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
           ) : (
             <div></div>
           )}
+        </div>
+        
+        <div className="mt-16 border-t border-gray-200 dark:border-gray-700 pt-8">
+          <h2 className="text-2xl font-bold mb-6">Comments</h2>
+          <ChapterComments chapterId={chapter.id} />
         </div>
       </div>
     </div>
