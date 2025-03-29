@@ -19,48 +19,73 @@ interface Novel {
     _id: string;
     name: string;
   };
-  latestChapter: Chapter;
+  latestChapter?: Chapter;
+  createdAt?: string;
 }
 
+type TabType = 'chapters' | 'novels';
+
 const LatestUpdates = () => {
-  const [updates, setUpdates] = useState<Novel[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>('chapters');
+  const [latestChapters, setLatestChapters] = useState<Novel[]>([]);
+  const [newNovels, setNewNovels] = useState<Novel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const fallbackImage = '/images/placeholder-cover.jpg';
 
   useEffect(() => {
-    const fetchLatestUpdates = async () => {
+    const fetchData = async () => {
       setLoading(true);
       setError(null);
       
       try {
-        const response = await fetch('/api/novels/latest-updates', {
+        // Fetch latest chapter updates
+        const chaptersResponse = await fetch('/api/novels/latest-updates', {
           cache: 'no-store',
           next: { revalidate: 0 }
         });
         
-        if (!response.ok) {
-          throw new Error(`Failed to fetch latest updates: ${response.status} ${response.statusText}`);
+        if (!chaptersResponse.ok) {
+          throw new Error(`Failed to fetch latest updates: ${chaptersResponse.status} ${chaptersResponse.statusText}`);
         }
         
-        const data = await response.json();
+        const chaptersData = await chaptersResponse.json();
         
-        if (data && Array.isArray(data.novels)) {
-          setUpdates(data.novels);
+        if (chaptersData && Array.isArray(chaptersData.novels)) {
+          setLatestChapters(chaptersData.novels);
         } else {
-          console.error('Invalid data format:', data);
-          setUpdates([]);
+          console.error('Invalid data format for chapters:', chaptersData);
+          setLatestChapters([]);
+        }
+
+        // Fetch newly created novels
+        const novelsResponse = await fetch('/api/novels/new', {
+          cache: 'no-store',
+          next: { revalidate: 0 }
+        });
+        
+        if (!novelsResponse.ok) {
+          throw new Error(`Failed to fetch new novels: ${novelsResponse.status} ${novelsResponse.statusText}`);
+        }
+        
+        const novelsData = await novelsResponse.json();
+        
+        if (novelsData && Array.isArray(novelsData.novels)) {
+          setNewNovels(novelsData.novels);
+        } else {
+          console.error('Invalid data format for new novels:', novelsData);
+          setNewNovels([]);
         }
       } catch (error) {
-        console.error('Error fetching latest updates:', error);
-        setError('Failed to load latest updates. Please try again later.');
+        console.error('Error fetching data:', error);
+        setError('Failed to load data. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLatestUpdates();
+    fetchData();
   }, []);
 
   const handleImageError = (novelId: string) => {
@@ -111,19 +136,6 @@ const LatestUpdates = () => {
     );
   }
 
-  if (!updates || updates.length === 0) {
-    return (
-      <section className="mb-12">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Latest Updates</h2>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
-          <p className="text-gray-600 dark:text-gray-400">No recent updates found.</p>
-        </div>
-      </section>
-    );
-  }
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Recently';
     
@@ -148,23 +160,26 @@ const LatestUpdates = () => {
     }
   };
 
-  return (
-    <section className="mb-12">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Latest Updates</h2>
-        <Link 
-          href="/latest" 
-          className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-        >
-          View All
-        </Link>
-      </div>
+  const renderNoContent = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+      <p className="text-gray-600 dark:text-gray-400">
+        {activeTab === 'chapters' ? 'No recent chapter updates found.' : 'No new novels found.'}
+      </p>
+    </div>
+  );
+
+  const renderChaptersTab = () => {
+    if (!latestChapters || latestChapters.length === 0) {
+      return renderNoContent();
+    }
+
+    return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-        {updates.map((novel, index) => (
+        {latestChapters.map((novel, index) => (
           <div 
             key={novel._id || index}
             className={`flex p-4 ${
-              index < updates.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
+              index < latestChapters.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
             }`}
           >
             <Link href={`/novels/${novel._id}`} className="shrink-0 mr-4">
@@ -210,6 +225,99 @@ const LatestUpdates = () => {
           </div>
         ))}
       </div>
+    );
+  };
+
+  const renderNovelsTab = () => {
+    if (!newNovels || newNovels.length === 0) {
+      return renderNoContent();
+    }
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        {newNovels.map((novel, index) => (
+          <div 
+            key={novel._id || index}
+            className={`flex p-4 ${
+              index < newNovels.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
+            }`}
+          >
+            <Link href={`/novels/${novel._id}`} className="shrink-0 mr-4">
+              <div className="relative w-12 h-16 bg-gray-100 rounded overflow-hidden">
+                {novel.coverImage && (
+                  <Image 
+                    src={imageErrors[novel._id] ? fallbackImage : novel.coverImage}
+                    alt={novel.title || 'Novel cover'}
+                    width={48}
+                    height={64}
+                    className="w-12 h-16 object-cover rounded"
+                    onError={() => handleImageError(novel._id)}
+                    unoptimized
+                  />
+                )}
+              </div>
+            </Link>
+            <div className="flex-1">
+              <Link href={`/novels/${novel._id}`}>
+                <h3 className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400">
+                  {novel.title || 'Untitled Novel'}
+                </h3>
+              </Link>
+              <Link href={`/profile/${novel.author?._id || '#'}`}>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  by {novel.author?.name || 'Unknown Author'}
+                </p>
+              </Link>
+              <div className="flex justify-end items-center mt-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatDate(novel.createdAt || '')}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <section className="mb-12">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Latest Updates</h2>
+        <Link 
+          href="/latest" 
+          className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+        >
+          View All
+        </Link>
+      </div>
+
+      {/* Tab navigation */}
+      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
+        <button
+          className={`py-2 px-4 font-medium ${
+            activeTab === 'chapters'
+              ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+          onClick={() => setActiveTab('chapters')}
+        >
+          Recent Chapters
+        </button>
+        <button
+          className={`py-2 px-4 font-medium ${
+            activeTab === 'novels'
+              ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+          onClick={() => setActiveTab('novels')}
+        >
+          New Novels
+        </button>
+      </div>
+
+      {/* Tab content */}
+      {activeTab === 'chapters' ? renderChaptersTab() : renderNovelsTab()}
     </section>
   );
 };
