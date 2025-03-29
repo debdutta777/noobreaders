@@ -89,6 +89,9 @@ export default function ChapterComments({ chapterId }: ChapterCommentsProps) {
       const responseData = await response.json();
       
       if (!response.ok) {
+        if (responseData.error === 'User not found. Please complete your profile setup.') {
+          throw new Error('Your user profile is incomplete. Please complete your profile setup to comment.');
+        }
         throw new Error(responseData.error || 'Failed to submit comment');
       }
       
@@ -99,6 +102,11 @@ export default function ChapterComments({ chapterId }: ChapterCommentsProps) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to submit comment. Please try again.';
       console.error('Error submitting comment:', err);
       setError(errorMessage);
+      
+      // If it's a user profile issue, add a help link
+      if (errorMessage.includes('user profile is incomplete')) {
+        setError(errorMessage + ' Please visit your profile page to complete setup.');
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -16,12 +16,10 @@ export default function ChapterContent({ content, externalImages = [] }: Chapter
   
   // Process external images from database
   useEffect(() => {
-    // Debug logging
-    console.log('External images received:', externalImages);
-    setDebug(prev => [...prev, {
-      message: 'External images received',
-      data: externalImages
-    }]);
+    // Debug logging - but without exposing full image URLs
+    if (process.env.NODE_ENV === 'development') {
+      console.log('External images count:', externalImages ? externalImages.length : 0);
+    }
     
     if (!externalImages || !externalImages.length) return;
     
@@ -42,15 +40,16 @@ export default function ChapterContent({ content, externalImages = [] }: Chapter
         caption: img.caption || ''
       };
       
-      console.log(`Normalized image ${index}:`, normalized);
+      // Don't log full image URLs
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Normalized image ${index} caption:`, normalized.caption || '[No caption]');
+      }
       return normalized;
     }).filter(img => img.src); // Only keep images with valid URLs
     
-    console.log('Normalized images:', normalizedImages);
-    setDebug(prev => [...prev, {
-      message: 'Normalized images',
-      data: normalizedImages
-    }]);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Normalized images count:', normalizedImages.length);
+    }
     
     setNormalizedExternalImages(normalizedImages);
   }, [externalImages]);
@@ -61,11 +60,9 @@ export default function ChapterContent({ content, externalImages = [] }: Chapter
       // Access the images stored in the global variable
       const images = (window as any).__CHAPTER_IMAGES__ || [];
       
-      console.log('Embedded images found:', images.length, images);
-      setDebug(prev => [...prev, {
-        message: 'Embedded images found',
-        data: { count: images.length, images }
-      }]);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Embedded images count:', images.length);
+      }
       
       if (images.length > 0) {
         // Replace image markers with actual image components
@@ -158,10 +155,10 @@ export default function ChapterContent({ content, externalImages = [] }: Chapter
                     className="chapter-image cursor-pointer mx-auto"
                     onClick={() => handleExternalImageClick(img.src)}
                     onError={(e) => {
-                      console.error(`Failed to load image: ${img.src}`);
+                      console.error(`Failed to load image #${index}`);
                       setDebug(prev => [...prev, {
                         message: 'Image load error',
-                        data: { src: img.src, error: e }
+                        data: { index }
                       }]);
                       e.currentTarget.style.display = 'none';
                     }}
@@ -195,10 +192,10 @@ export default function ChapterContent({ content, externalImages = [] }: Chapter
               alt="Expanded chapter image"
               className="max-w-full max-h-[90vh] object-contain"
               onError={(e) => {
-                console.error(`Failed to load expanded image: ${expandedImage}`);
+                console.error(`Failed to load expanded image`);
                 setDebug(prev => [...prev, {
                   message: 'Expanded image load error',
-                  data: { src: expandedImage }
+                  data: { error: 'Image failed to load' }
                 }]);
               }}
             />

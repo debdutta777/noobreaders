@@ -45,17 +45,32 @@ export async function POST(request: NextRequest) {
     
     const { db } = await connectToDatabase();
     
-    // Get user info
-    const user = await db.collection('users').findOne({ email: session.user.email });
+    // Try to find the user in multiple collections
+    let user = null;
+    const userEmail = session.user.email;
+    
+    // First check users collection
+    user = await db.collection('users').findOne({ email: userEmail });
+    
+    // If not found, check reader-user collection
+    if (!user) {
+      user = await db.collection('reader-user').findOne({ email: userEmail });
+    }
+    
+    // If still not found, check writer-user collection
+    if (!user) {
+      user = await db.collection('writer-user').findOne({ email: userEmail });
+    }
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      console.error(`User not found for email: ${userEmail} in any collection`);
+      return NextResponse.json({ error: 'User not found. Please complete your profile setup.' }, { status: 404 });
     }
     
     // Create the comment
     const newComment = {
       userId: user._id.toString(),
-      userName: user.name || session.user.name || user.email,
+      userName: user.name || session.user.name || userEmail,
       chapterId,
       content,
       createdAt: new Date().toISOString()
@@ -90,11 +105,26 @@ export async function DELETE(request: NextRequest) {
     
     const { db } = await connectToDatabase();
     
-    // Get user info
-    const user = await db.collection('users').findOne({ email: session.user.email });
+    // Try to find the user in multiple collections
+    let user = null;
+    const userEmail = session.user.email;
+    
+    // First check users collection
+    user = await db.collection('users').findOne({ email: userEmail });
+    
+    // If not found, check reader-user collection
+    if (!user) {
+      user = await db.collection('reader-user').findOne({ email: userEmail });
+    }
+    
+    // If still not found, check writer-user collection
+    if (!user) {
+      user = await db.collection('writer-user').findOne({ email: userEmail });
+    }
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      console.error(`User not found for email: ${userEmail} in any collection`);
+      return NextResponse.json({ error: 'User not found. Please complete your profile setup.' }, { status: 404 });
     }
     
     // Find the comment
