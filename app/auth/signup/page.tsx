@@ -1,8 +1,10 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import SignUpButtons from './components/SignUpButtons';
 
 export const dynamic = 'force-dynamic';
@@ -12,12 +14,77 @@ export const metadata: Metadata = {
   description: 'Create a new NoobReaders account',
 };
 
-export default async function SignUpPage() {
-  const session = await auth();
-  
-  if (session) {
-    redirect('/');
-  }
+export default function SignUpPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    
+    try {
+      // Basic validation
+      if (!formData.name || !formData.email || !formData.password) {
+        setError('All fields are required');
+        setLoading(false);
+        return;
+      }
+      
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters long');
+        setLoading(false);
+        return;
+      }
+      
+      // Send the registration request
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+      
+      // If registration was successful, sign in
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: formData.email,
+        password: formData.password,
+      });
+      
+      if (result?.error) {
+        setError('Registration successful, but sign-in failed. Please try signing in manually.');
+        setLoading(false);
+      } else {
+        // Redirect to home page on successful login
+        router.push('/');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during registration');
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
@@ -28,7 +95,13 @@ export default async function SignUpPage() {
         </div>
         
         <div className="bg-white p-8 rounded-lg shadow-md">
-          <form action="/api/auth/signup" method="POST" className="space-y-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
+              {error}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Full Name
@@ -37,6 +110,8 @@ export default async function SignUpPage() {
                 id="name"
                 name="name"
                 type="text"
+                value={formData.name}
+                onChange={handleChange}
                 required
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
               />
@@ -50,6 +125,8 @@ export default async function SignUpPage() {
                 id="email"
                 name="email"
                 type="email"
+                value={formData.email}
+                onChange={handleChange}
                 required
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
               />
@@ -63,17 +140,25 @@ export default async function SignUpPage() {
                 id="password"
                 name="password"
                 type="password"
+                value={formData.password}
+                onChange={handleChange}
                 required
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Must be at least 6 characters long
+              </p>
             </div>
             
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={loading}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                  loading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                Create Account
+                {loading ? 'Creating Account...' : 'Create Account'}
               </button>
             </div>
           </form>
