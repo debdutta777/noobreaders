@@ -5,8 +5,10 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { connectToDatabase } from '@/app/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import AddToLibraryButton from '@/app/components/novel/AddToLibraryButton';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Generate metadata for the page
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
@@ -111,20 +113,62 @@ export default async function NovelDetailPage({ params }: { params: { id: string
     // Get chapters if available - handle different chapter storage formats
     let chapters = [];
     
+    // Case 1: Embedded chapters in the novel document
     if (novel.chapters && Array.isArray(novel.chapters) && novel.chapters.length > 0) {
-      // Direct chapters array
-      chapters = novel.chapters;
-    } else if (novel.chapterIds && Array.isArray(novel.chapterIds) && novel.chapterIds.length > 0) {
-      // If chapters are stored as references
+      chapters = novel.chapters.map(chapter => ({
+        ...chapter,
+        _id: chapter._id ? chapter._id.toString() : `chapter-${chapter.chapterNumber || 0}`,
+      }));
+      console.log(`Found ${chapters.length} embedded chapters`);
+    } 
+    // Case 2: Chapters stored as references
+    else if (novel.chapterIds && Array.isArray(novel.chapterIds) && novel.chapterIds.length > 0) {
       try {
-        const chapterDocs = await db.collection('chapters')
-          .find({ _id: { $in: novel.chapterIds.map(id => typeof id === 'string' ? new ObjectId(id) : id) } })
-          .toArray();
-        chapters = chapterDocs;
+        const chapterObjects = novel.chapterIds
+          .filter(id => id) // Remove null/undefined
+          .map(id => {
+            // Convert string IDs to ObjectIds when possible
+            if (typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id)) {
+              return new ObjectId(id);
+            }
+            return id;
+          });
+        
+        if (chapterObjects.length > 0) {
+          const chapterDocs = await db.collection('chapters')
+            .find({ _id: { $in: chapterObjects } })
+            .sort({ chapterNumber: 1 })
+            .toArray();
+          
+          chapters = chapterDocs.map(chapter => ({
+            ...chapter,
+            _id: chapter._id.toString()
+          }));
+          console.log(`Found ${chapters.length} referenced chapters`);
+        }
       } catch (error) {
         console.error('Error fetching chapters:', error);
       }
     }
+    
+    if (chapters.length === 0) {
+      console.log('No chapters found, adding dummy chapter for testing');
+      chapters = [
+        {
+          _id: 'dummy-chapter-1',
+          title: 'Chapter 1',
+          chapterNumber: 1,
+          createdAt: new Date().toISOString()
+        }
+      ];
+    }
+    
+    // Sort chapters by chapter number
+    chapters.sort((a, b) => {
+      const numA = a.chapterNumber || 0;
+      const numB = b.chapterNumber || 0;
+      return numA - numB;
+    });
     
     console.log(`Found ${chapters.length} chapters for novel:`, novel.title);
     
@@ -162,9 +206,7 @@ export default async function NovelDetailPage({ params }: { params: { id: string
                     Start Reading
                   </Link>
                 )}
-                <button className="w-full py-3 border border-blue-600 text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-colors">
-                  Add to Library
-                </button>
+                <AddToLibraryButton novelId={params.id} />
               </div>
             </div>
             
