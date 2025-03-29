@@ -9,7 +9,12 @@ export const metadata: Metadata = {
 
 async function getNovelData() {
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/novels/featured`, {
+    // Use absolute URL instead of relying on NEXTAUTH_URL
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000';
+      
+    const res = await fetch(`${baseUrl}/api/novels/featured`, {
       cache: 'no-store',
     });
     

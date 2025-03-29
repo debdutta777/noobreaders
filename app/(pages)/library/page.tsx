@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import NovelGrid from '@/app/components/NovelGrid';
 
@@ -11,7 +11,11 @@ export const metadata: Metadata = {
 
 async function getReadingList(userId: string) {
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/users/${userId}/reading-list`, {
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000';
+      
+    const res = await fetch(`${baseUrl}/api/users/${userId}/reading-list`, {
       cache: 'no-store',
     });
     
@@ -27,7 +31,7 @@ async function getReadingList(userId: string) {
 }
 
 export default async function LibraryPage() {
-  const session = await getServerSession();
+  const session = await auth();
   
   if (!session || !session.user) {
     redirect('/api/auth/signin');
