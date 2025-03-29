@@ -80,3 +80,81 @@ body {
   background-color: var(--chapter-bg);
   color: var(--chapter-text);
 }
+
+/* Add styles for chapter images */
+.chapter-image-container {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+  max-width: 100%;
+}
+
+.chapter-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.chapter-image:hover {
+  transform: scale(1.01);
+}
+
+/* Light theme specific image styles */
+.theme-light .chapter-image {
+  border: 1px solid #e5e7eb;
+}
+
+/* Dark theme specific image styles */
+.theme-dark .chapter-image {
+  border: 1px solid #374151;
+  /* Add subtle glow to images in dark mode */
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.07);
+}
+
+/* Image captions */
+.chapter-image-caption {
+  text-align: center;
+  font-style: italic;
+  margin-top: 0.75rem;
+  opacity: 0.8;
+  font-size: 0.9rem;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Responsive image sizes */
+@media (max-width: 768px) {
+  .chapter-image-container {
+    margin: 1.5rem 0;
+  }
+  
+  .chapter-image {
+    border-radius: 0.375rem;
+  }
+  
+  .chapter-image-caption {
+    font-size: 0.8rem;
+  }
+}
+
+/* Lightbox effect on image click */
+.chapter-image.expanded {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 90vw;
+  max-height: 90vh;
+  z-index: 50;
+  cursor: zoom-out;
+  box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7);
+}
+
+/* Fix for image handling within paragraphs */
+.chapter-content p img {
+  display: block;
+  margin: 1.5rem auto;
+}
