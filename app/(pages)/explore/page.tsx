@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Metadata } from 'next';
 import NovelGrid from '@/app/components/NovelGrid';
-
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = {
-  title: 'Explore Novels | NoobReaders',
-  description: 'Discover new novels and stories on NoobReaders',
-};
 
 export default function ExplorePage() {
   const [novels, setNovels] = useState([]);
@@ -17,6 +9,9 @@ export default function ExplorePage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Set document title client-side instead
+    document.title = 'Explore Novels | NoobReaders';
+    
     const fetchNovels = async () => {
       try {
         setIsLoading(true);
@@ -25,8 +20,7 @@ export default function ExplorePage() {
         // Use window.location.origin to get the base URL of the application
         const baseUrl = window.location.origin;
         const response = await fetch(`${baseUrl}/api/novels/featured`, {
-          cache: 'no-store',
-          next: { revalidate: 0 }
+          cache: 'no-store'
         });
 
         if (!response.ok) {
