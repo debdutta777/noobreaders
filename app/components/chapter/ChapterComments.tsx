@@ -7,6 +7,7 @@ interface Comment {
   _id: string;
   userId: string;
   userName: string;
+  userType?: 'writer' | 'reader';
   chapterId: string;
   content: string;
   createdAt: string;
@@ -210,7 +211,14 @@ export default function ChapterComments({ chapterId }: ChapterCommentsProps) {
             {comments.map((comment) => (
               <div key={comment._id} className="comment-item">
                 <div className="comment-header">
-                  <span className="comment-user">{comment.userName}</span>
+                  <div className="flex items-center">
+                    <span className="comment-user">{comment.userName}</span>
+                    {comment.userType === 'writer' && (
+                      <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-200">
+                        Author
+                      </span>
+                    )}
+                  </div>
                   <span className="comment-date">{formatDate(comment.createdAt)}</span>
                 </div>
                 <p className="comment-content">{comment.content}</p>
