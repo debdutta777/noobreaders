@@ -314,3 +314,30 @@ body {
   line-height: 1.6;
   color: var(--chapter-text);
 }
+
+/* Novel card glow effect */
+.novel-card-container {
+  position: relative;
+  z-index: 1;
+}
+
+.novel-card-container::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, #ff3366, #8843f2, #3066ff);
+  border-radius: 1rem;
+  opacity: 0;
+  filter: blur(1rem);
+  transform: translateY(10px) scale(0.95);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.novel-card-container:hover::before {
+  opacity: 0.7;
+  transform: translateY(0) scale(1);
+}
