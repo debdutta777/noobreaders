@@ -1,45 +1,82 @@
-import { NextResponse } from 'next/server';
-import { NextRequest } from 'next/server';
-import dbConnect from '@/app/lib/utils/db';
-import Novel from '@/app/lib/models/Novel';
+import { NextRequest, NextResponse } from 'next/server';
+import { connectToDatabase } from '@/app/lib/mongodb';
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
+    const { db } = await connectToDatabase();
+    const searchParams = request.nextUrl.searchParams;
+    const period = searchParams.get('period') || 'week';
     
-    const period = request.nextUrl.searchParams.get('period') || 'week';
-    
-    // Define date ranges based on period
+    // Define the date range based on period
+    let dateFilter: Date;
     const now = new Date();
-    let startDate = new Date();
     
     switch (period) {
       case 'day':
-        startDate.setDate(now.getDate() - 1);
-        break;
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
+        dateFilter = new Date(now.setDate(now.getDate() - 1));
         break;
       case 'month':
-        startDate.setMonth(now.getMonth() - 1);
+        dateFilter = new Date(now.setMonth(now.getMonth() - 1));
         break;
-      default: // 'all'
-        startDate = new Date(0); // Beginning of time
+      case 'year':
+        dateFilter = new Date(now.setFullYear(now.getFullYear() - 1));
+        break;
+      case 'week':
+      default:
+        dateFilter = new Date(now.setDate(now.getDate() - 7));
         break;
     }
     
-    // For now, we'll just use a simple sort by views as we don't have complex stats
-    const novels = await Novel.find({
-      createdAt: { $gte: startDate }
-    })
-      .populate('author', 'name')
-      .sort({ views: -1, likes: -1 })
-      .limit(4)
-      .lean();
-    
-    return NextResponse.json(novels);
+    // Get popular novels from the database based on views
+    const novels = await db
+      .collection('novels')
+      .find({
+        updatedAt: { $gte: dateFilter }
+      })
+      .sort({ views: -1 })
+      .limit(6)
+      .toArray();
+
+    // Format the novels to match the expected structure
+    const formattedNovels = await Promise.all(
+      novels.map(async (novel) => {
+        // If the novel has an author ID, fetch the author details
+        let authorDetails = { _id: 'unknown', name: 'Unknown Author' };
+        
+        if (novel.author) {
+          try {
+            const authorDoc = await db
+              .collection('users')
+              .findOne({ _id: novel.author });
+              
+            if (authorDoc) {
+              authorDetails = {
+                _id: authorDoc._id.toString(),
+                name: authorDoc.name || authorDoc.username || 'Unknown Author'
+              };
+            }
+          } catch (error) {
+            console.error('Error fetching author:', error);
+          }
+        }
+        
+        return {
+          _id: novel._id.toString(),
+          title: novel.title || 'Untitled Novel',
+          coverImage: novel.coverImage || '/images/placeholder-cover.jpg',
+          description: novel.description || '',
+          author: authorDetails,
+          views: novel.views || 0
+        };
+      })
+    );
+
+    return NextResponse.json({ novels: formattedNovels || [] });
   } catch (error) {
     console.error('Error fetching popular novels:', error);
-    return NextResponse.json({ error: 'Failed to fetch popular novels' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch popular novels', novels: [] },
+      { status: 500 }
+    );
   }
 } 

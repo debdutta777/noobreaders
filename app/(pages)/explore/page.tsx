@@ -2,6 +2,8 @@ import React from 'react';
 import { Metadata } from 'next';
 import NovelGrid from '@/app/components/NovelGrid';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Explore Novels | NoobReaders',
   description: 'Discover new novels and stories on NoobReaders',
@@ -22,7 +24,8 @@ async function getNovelData() {
       throw new Error('Failed to fetch novel data');
     }
     
-    return res.json();
+    const data = await res.json();
+    return data;
   } catch (error) {
     console.error('Error fetching novel data:', error);
     return { novels: [] };
@@ -31,13 +34,13 @@ async function getNovelData() {
 
 export default async function ExplorePage() {
   const data = await getNovelData();
-  const novels = data.novels || [];
+  const novels = data?.novels || [];
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Explore Novels</h1>
       
-      {novels.length > 0 ? (
+      {novels && novels.length > 0 ? (
         <NovelGrid novels={novels} />
       ) : (
         <div className="text-center py-10">
